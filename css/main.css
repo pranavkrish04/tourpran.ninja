@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100&display=swap');
+
+*{
+  font-family: 'Poppins';
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+}
+
+li{
+  list-style: none;
+}
+
+a{
+  text-decoration: none;
+  color: black;
+}
+
+.nav-bar{
+  padding: 2em;
+  padding-left: 2em;
+  padding-right: 3em;
+}
+
+.nav-rightbar{
+  display: flex;
+}
+
+.nav-rightbar li{
+  padding-right: 10%;
+}
+a:hover {
+  color: blue;
+}
+
+
+.square-navbar {
+  margin:0.4em;
+  height: 10px;
+  width: 10px;
+  background-color: #0050FF;
+}
+
+.left-navbar{
+  display: flex;
+  float: left;
+}
+.right-navbar{
+  float: right;
+}
+
+.title-navbar{
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.name-navbar{
+  font-weight: bold;
+  font-size: 20px;
+  color: #0050FF;
+  padding-right: 0.5em;
+}
+.content{
+  height: 91vh;
+  background-image: linear-gradient(to right, #E6DACE 40% , transparent 0%);
+  display: flex;
+}
+
+.card {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  background-color: #F4ECE6;
+  text-align: center;
+}
+
+.title-tagline{
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.school{
+  font-weight: 500;
+}
+
+.namecard{
+  font-size: 25px;
+}
+
+.cardholder{
+  padding-left: 25%;
+  padding-top: 10%;
+  
+}
+.namecontent{
+  font-weight: bolder;
+  font-size: 30px;
+  padding-bottom: 2em;
+}
+
+.team{
+  text-decoration: underline;
+}
+
+.textcontent{
+  height: 40%;
+  width: 20%;
+  padding: 5em;
+  padding-left: 10%;
+  padding-top: 10%;
+  text-align: center;
+}
+
+.main-contentwork{
+  background-color: #E6DACE;
+  height: 100%;
+  width: 100%;
+  padding-bottom: 3em;
+}
+
+.titlework{
+  padding: 3em;
+  padding-bottom: 2em;
+  text-align: center;
+  font-weight: 900;
+  font-size: 30px;
+}
+
+.subtitlework{
+  font-size: 15px;
+  text-align: center;
+}
+
+.workcard{
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  background-color: #F4ECE6;
+  max-width: 500px;
+  margin: auto;
+  margin-top: 2em;
+  display: flex;
+  text-align: center;
+}
+
+.workcardtitle{
+  padding: 1em;
+  color: #0050FF;
+}
+
+.square-workcard{
+  height: 10px;
+  width: 10px;
+  border-radius: 5px;
+  background-color: #0050FF;
+}
+.workcardright img{
+  max-height: 200px;
+  max-width: 200px;
+  margin: auto;
+}
+.workcardright{
+  margin: auto;
+}
+.workcarddescription{
+  padding: 1em;
+}
