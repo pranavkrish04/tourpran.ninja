@@ -1,0 +1,141 @@
+I"<h2 id="start">Start:</h2>
+
+<p>So the ELF or Excecutable and Linkable format are programs or binaries that are used in linux systems. ELFs contain 3 components namely:</p>
+<ul>
+  <li>ELF Headers</li>
+  <li>ELF Segments</li>
+  <li>ELF Sections</li>
+</ul>
+
+<h3 id="need">Need:</h3>
+
+<p>A good reason to learn ELF format is it helps you to understand things easily when you do binary analysis or when you are curious to know how the Operating System works. There are several reasons why you need to know them …</p>
+
+<h2 id="elf-headers">ELF Headers</h2>
+
+<p>Firstly we will be looking at ELF which are 64 bits, dynamically linked, not stripped.
+<img src="/assets/images/2.png" alt="" /></p>
+
+<p>Lets look at the ELF header with readelf.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>readelf -h binary
+</code></pre></div></div>
+<p><img src="/assets/images/1.png" alt="" /></p>
+
+<h3 id="magic">magic</h3>
+<p>We can see from the image that our header / binary starts with the magic bytes Magic: 45 4c 46 which corresponds to ELF in ascii. This magic bytes tell the file command that this is an Excecutable and Linkable Format.</p>
+
+<h3 id="class">Class</h3>
+<p>This binary has a class of 64 bits because when I compiled, it was in a 64 bit machine so by default it will be 64 bits. Inorder to compile a 32 bit binary we need to give the -m32 flag to gcc.</p>
+
+<h3 id="data">Data</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Little Endian</th>
+      <th style="text-align: center">Big Endian</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">The bytes of a word are arranged from right to left</td>
+      <td style="text-align: center">The bytes of a word are arranged from left to right</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">The address of the word (assume 4 bytes) will point to 4 th bytes</td>
+      <td style="text-align: center">The address of that word (assume 4 bytes) will point to the 1st bytes</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>So in our case its little endian and most 64 bit amd processors compile it in little Endian.</p>
+
+<h3 id="osabi">OS/ABI</h3>
+
+<p>Nothing to tell about OS (Operating System). I compiled this is my laptop which is Linux hence Unix.</p>
+
+<h3 id="machine">Machine</h3>
+
+<p>Tells us we have x86 architecture with 64 bits.</p>
+
+<h3 id="type">type</h3>
+
+<p>Not sure why its DYN(Shared Object). It should have been EXEC (Executable file).[will update soon].</p>
+
+<h3 id="rest">Rest</h3>
+
+<p>Rest of the information is regarding addresses and Size of sections and headers.</p>
+
+<h2 id="segments-aka-program-headers">Segments (aka Program Headers)</h2>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>readelf -h ``binary``
+</code></pre></div></div>
+<p><img src="/assets/images/3.png" alt="" /></p>
+
+<p>This is a array of structures. Each describes the segments. The segments are used to tell, how to create a memory image when the binary is excecuted. When the Kernel sees these segments it will map them into the Virtual Memory with the help of mmap system call.</p>
+
+<h3 id="phdr">PHDR</h3>
+
+<p>Tells the location of the Program header itself if its present.</p>
+
+<h3 id="interp">interp</h3>
+
+<p>specifies the location and size of a null-terminated path name to invoke as an interpreter</p>
+
+<ul>
+  <li>
+    <p>interpreter</p>
+  </li>
+  <li>
+    <ul>
+      <li>It is a program that excecutes certain specified instructions [not to worry now].</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="dynamic">dynamic</h3>
+
+<p>This segment specifies the information needed for the dynamic linking process.</p>
+
+<h3 id="gnu_eh_frame">GNU_EH_FRAME</h3>
+
+<p>This stores exceptional handlers. When things go wrong this area can deal with it.</p>
+
+<h3 id="gnu_stack">GNU_STACK</h3>
+
+<ul>
+  <li>stack</li>
+  <li>
+    <ul>
+      <li>This is just a place where things can be stored during runtime.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>This GNU_STACK is responsible for the stack being excecutable. If this is not there then by default stack will be excecutable. If stack is enabled then user input can also be excecuted and can lead to a great havoc.</p>
+
+<h2 id="elf-sections">ELF Sections</h2>
+
+<p>This is also commonly called as section headers. This has the information needed for linking a target object file (dependencies) to the binary. This is needed on linktime but not on runtime.</p>
+
+<h3 id="common-sections">Common Sections</h3>
+<ul>
+  <li>.text: This section contains the code for the binary.</li>
+  <li>.data: Holds all the initialised data.</li>
+  <li>.rodata: Holds the initialised read-only data.</li>
+  <li>.bss: Contain all the uninitialized data.</li>
+  <li>.plt: PLT (Procedure Linkage Table) is useful when it comes to getting address of functions in dynamically linked libraries.</li>
+  <li>.got: Contains all the resolved address of the functions from the dependecies.</li>
+  <li>.dynamic: Holds all needed information for dynamic linking.</li>
+  <li>.dynsym: table dedicated to dynamically linked symbols.</li>
+  <li>.strtab: string table of .symtab section.</li>
+  <li>.dynstr: string table of .dynsym section.</li>
+  <li>.interp: RTLD embedded string.</li>
+</ul>
+
+<h2 id="end">END</h2>
+<p>Hope you understood some basic concepts related to the ELF file format.</p>
+
+<h2 id="sources">sources:</h2>
+<p><a href="https://www.intezer.com/blog/research/executable-linkable-format-101-part1-sections-segments/">intezer</a>
+<a href="https://linux-audit.com/elf-binaries-on-linux-understanding-and-analysis/#program-headers">linux-audit</a></p>
+:ET
