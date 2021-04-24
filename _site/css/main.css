@@ -17,6 +17,7 @@ a{
 }
 
 .nav-bar{
+  width: auto;
   padding: 2em;
   padding-left: 2em;
   padding-right: 3em;
@@ -61,6 +62,7 @@ a:hover {
   padding-right: 0.5em;
 }
 .content{
+  width: auto;
   height: 91vh;
   background-image: linear-gradient(to right, #E6DACE 40% , transparent 0%);
   display: flex;
@@ -156,9 +158,58 @@ a:hover {
   max-width: 200px;
   margin: auto;
 }
+
 .workcardright{
   margin: auto;
 }
+
 .workcarddescription{
   padding: 1em;
+}
+
+@media only screen and (max-width: 1000px) {
+
+  .content{
+    background-color: pink;
+  }
+
+  .nav-bar{
+    padding: 2em;
+    text-align: center;
+  }
+
+  .left-navbar{
+    display: none;
+  }
+  .right-navbar{
+    float: none;
+    display: flex;
+    justify-content: center;
+  }
+  .content{
+    background-image: none;
+    background-color: white;
+    display: table;
+  }
+  .cardholder{
+    padding: 0;
+    display: flex;
+    margin: auto;
+    justify-content: center;
+  }
+  .textcontent{
+    padding: 0;
+    width: 70%;
+    padding-top: 40px;
+    margin: auto;
+    height: auto;
+    display:table;
+    justify-content: center;
+  }
+  .workcard{
+    display: table;
+  }
+  .card{
+    margin: 1em;
+  }
 }
