@@ -1,4 +1,4 @@
-I"`<h3 id="what-is-a-database">What is a Database:</h3>
+I"m<h3 id="what-is-a-database">What is a Database:</h3>
 <p>A database can be thought as a collection of data in an organised manner. When companies have huge amounts of data to be stored, using databases is the key for efficient usage of the data.</p>
 
 <p><img src="/assets/images/databasepic.png" alt="" /></p>
@@ -90,4 +90,8 @@ SELECT id FROM admin WHERE username = '' or 'a'='a' and passcode = '' or 'a'='a'
 
 # - comment the rest of the line
 </code></pre></div></div>
+
+<h4 id="blind-sql">Blind SQL:</h4>
+
+<p>According to OWASP Blind SQL is a type of sql injection where the attacker asks TRUE or FALSE Questions and based on the servers response we assume / determine a answer. Exactly we will see a similar challenge for blind SQL.</p>
 :ET
