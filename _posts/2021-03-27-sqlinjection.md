@@ -103,7 +103,3 @@ SELECT id FROM admin WHERE username = '' or 'a'='a' and passcode = '' or 'a'='a'
 
 # - comment the rest of the line
 ```
-
-#### Blind SQL:
-
-According to OWASP Blind SQL is a type of sql injection where the attacker asks TRUE or FALSE Questions and based on the servers response we assume / determine a answer. Exactly we will see a similar challenge for blind SQL. 
