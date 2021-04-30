@@ -1,0 +1,21 @@
+I"�<p><img src="/assets/images/pwnabletw1/pwnable1.png" alt="" /></p>
+
+<h4 id="aim">AIM:</h4>
+<p>Hey guys, Here our main objective is to get a shell and then to get the flag !!
+I have tried my best to explain the challenge. Hope you like it !!</p>
+
+<h3 id="solution">Solution:</h3>
+
+<p>First I check the mitigations :</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable2.png" alt="" /></p>
+
+<p>So I think it’s going to be fun !! As we have the permission to execute the stack (NX disabled). There is also no PIE so we don’t have to worry about the address changing every time :)
+Now, let us run the binary and see what is happening :&gt;</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable3.png" alt="" /></p>
+
+<p>So it’s simple just asking input and printing something. Now its time to see the assembly behind this binary.</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable4.png" alt="" /></p>
+:ET

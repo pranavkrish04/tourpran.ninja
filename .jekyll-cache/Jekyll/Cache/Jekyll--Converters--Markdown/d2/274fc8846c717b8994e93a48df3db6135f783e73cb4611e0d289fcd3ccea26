@@ -1,0 +1,12 @@
+I"w<blockquote>
+  <p>Hey guys, this is a pretty awesome challenge !! Here we will be writing assembly and then we will give it to the program(binary)</p>
+</blockquote>
+
+<p><img src="/assets/images/pwnabletw2/pwnable1.png" alt="" /></p>
+
+<h3 id="solution">Solution:</h3>
+
+<p>First I check the mitigations :</p>
+
+<p><img src="/assets/images/pwnabletw2/pwnable2.png" alt="" /></p>
+:ET

@@ -1,0 +1,86 @@
+I"?
+<blockquote>
+  <p>Hey guys, this is a pretty awesome challenge !! Here we will be writing assembly and then we will give it to the program(binary)</p>
+</blockquote>
+
+<p><img src="/assets/images/pwnabletw2/pwnable1.png" alt="" /></p>
+
+<h3 id="solution">Solution:</h3>
+
+<p>First I check the mitigations :</p>
+
+<p><img src="/assets/images/pwnabletw2/pwnable2.png" alt="" /></p>
+
+<ul>
+  <li>We have NX disabled. That means it is something to do with the shellcode.</li>
+  <li>Seems like there is a canary which will not allow you to do a stack based buffer overflows.</li>
+  <li>there is no pie so the address of the binary will be same every time you run.</li>
+</ul>
+
+<p>Let’s see the disassembly of this program
+<img src="/assets/images/pwnabletw2/pwnable.gif" alt="" /></p>
+
+<p>Here we can see that our input is being put in the address <code class="language-plaintext highlighter-rouge">0x804a060</code> and then it is moved to EAX and then after that EAX is called.
+Meaning: our input is being executed. Now, let us run the binary and see what is happening :&gt;</p>
+
+<p><img src="/assets/images/pwnabletw2/pwnable3.png" alt="" /></p>
+
+<blockquote>
+  <p>Hmm… We get a segfault.</p>
+</blockquote>
+
+<h4 id="idea">Idea:</h4>
+
+<ul>
+  <li>As said in the question we will you three syscalls and then get the flag</li>
+  <li>First call: open the flag file</li>
+  <li>Second call: read the file</li>
+  <li>Third call: write it to the output</li>
+</ul>
+
+<h4 id="exploit">Exploit:</h4>
+
+<p>We will see the exploit in parts.</p>
+
+<h4 id="part-1">Part 1</h4>
+
+<p><img src="/assets/images/pwnabletw2/pwnable4.png" alt="" /></p>
+
+<ul>
+  <li>We make EAX to 5</li>
+  <li>we push the string “///home/orw/flag”</li>
+  <li>We make EBX pointing to the stack ( the string )</li>
+  <li>We make EDX equal to 0 and then we make the syscall.</li>
+</ul>
+
+<h4 id="part-2">Part 2</h4>
+
+<p><img src="/assets/images/pwnabletw2/pwnable5.png" alt="" /></p>
+
+<ul>
+  <li>We make EAX equal to 3</li>
+  <li>We make ECX point to the string</li>
+  <li>Give EDX the buffer size</li>
+  <li>Call the syscall</li>
+</ul>
+
+<h4 id="part-3">Part 3</h4>
+
+<p><img src="/assets/images/pwnabletw2/pwnable6.png" alt="" /></p>
+
+<ul>
+  <li>We make EAX equal to 4</li>
+  <li>Make EBX equal to 0</li>
+  <li>Add 1 to EBX / making EBX equal to 1. Then call the syscall.</li>
+</ul>
+
+<blockquote>
+  <p>Refer to the below image if having any doubts !!</p>
+</blockquote>
+
+<p><img src="/assets/images/pwnabletw2/pwnable7.png" alt="" /></p>
+
+<p>If we put all of the things together, then we get the flag.</p>
+
+<p><img src="/assets/images/pwnabletw2/pwnable8.png" alt="" /></p>
+:ET

