@@ -21,7 +21,7 @@ Here we are given a binary and the source for the binary.
 
 #### Mitigations: 
 
-Before goinging into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.
+Before going into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.
 ```bash
 checksec --file ./ret2shellcode
 ```
@@ -46,7 +46,7 @@ No eXecute:
 
 PIE:
 * position independent excecutable: will randomise the address of the code and PLT.
-* point to note : the libc address will always be different cause they are PIC (Position Independent Code). even they dont know where they are loded lmao.
+* point to note : the libc address will always be different cause they are PIC (Position Independent Code). Even they dont know where they are laoded lmao.
 
 RWX:
 * Read, write and execute : It'll tell us if the binary has segments that we can write and excecute.
@@ -113,7 +113,7 @@ Run this script and lets see what we get. SHOOT you get something called EOF (En
 
 ![](/assets/images/pwntraining1/pwntrain6.png)
 
-You can attach a gdb with your script and see where your script will crash / how it runs. But we are already given the c code and we know that there was some addictional checks done to the `execve`.
+You can attach a gdb with your script and see where your script will crash / how it runs. But we are already given the c code and we know that there was some additional checks done to the `execve`.
 
 ![](/assets/images/pwntraining1/pwntrain7.png)
 
