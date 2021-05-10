@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-05-10T10:26:46+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">TOURPRAN’s HOME</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to Shellcode</title><link href="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html" rel="alternate" type="text/html" title="Return to Shellcode" /><published>2021-05-09T00:00:00+05:30</published><updated>2021-05-09T00:00:00+05:30</updated><id>http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1</id><content type="html" xml:base="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html">&lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.1.1">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2021-05-10T15:42:05+05:30</updated><id>http://localhost:4000/feed.xml</id><title type="html">TOURPRAN’s HOME</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to Shellcode</title><link href="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html" rel="alternate" type="text/html" title="Return to Shellcode" /><published>2021-05-09T00:00:00+05:30</published><updated>2021-05-09T00:00:00+05:30</updated><id>http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1</id><content type="html" xml:base="http://localhost:4000/pwn-training/2021/05/09/simple-ret2shellcode-training1.html">&lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 
 &lt;p&gt;This is an initiative taken by team members of ARESx. In this series of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwn-training&lt;/code&gt; we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.&lt;/p&gt;
 
@@ -13,7 +13,7 @@
 
 &lt;h4 id=&quot;mitigations&quot;&gt;Mitigations:&lt;/h4&gt;
 
-&lt;p&gt;Before goinging into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.&lt;/p&gt;
+&lt;p&gt;Before going into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.&lt;/p&gt;
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;checksec &lt;span class=&quot;nt&quot;&gt;--file&lt;/span&gt; ./ret2shellcode
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
@@ -43,7 +43,7 @@
 &lt;p&gt;PIE:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;position independent excecutable: will randomise the address of the code and PLT.&lt;/li&gt;
-  &lt;li&gt;point to note : the libc address will always be different cause they are PIC (Position Independent Code). even they dont know where they are loded lmao.&lt;/li&gt;
+  &lt;li&gt;point to note : the libc address will always be different cause they are PIC (Position Independent Code). Even they dont know where they are laoded lmao.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;p&gt;RWX:&lt;/p&gt;
@@ -113,7 +113,7 @@
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain6.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;You can attach a gdb with your script and see where your script will crash / how it runs. But we are already given the c code and we know that there was some addictional checks done to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;You can attach a gdb with your script and see where your script will crash / how it runs. But we are already given the c code and we know that there was some additional checks done to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt;.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain7.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
