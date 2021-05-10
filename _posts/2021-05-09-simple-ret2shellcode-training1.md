@@ -123,7 +123,7 @@ So we have to somehow make the arg1 = 0xdeadbeef and arg2 = 0xcafebabe. This is 
 
 This is a type of attack where we use static code or code thats been used to make this binary. we will combine one or many such code snippets to form a chain that'll do something valuable to us.
 
-* Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and especially by RDI, RSI, RDX
+* Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and specifically by RDI, RSI, RDX for the first, second, and third arguments respectively.
 * so we can set RDI = 0xdeadbeef and RSI = 0xcafebabe. then call win function.
 
 #### Exploit [ret2win]: 

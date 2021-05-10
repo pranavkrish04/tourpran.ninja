@@ -1,4 +1,4 @@
-I"4A<h3 id="introduction">Introduction:</h3>
+I"�B<h3 id="introduction">Introduction:</h3>
 
 <p>This is an initiative taken by team members of ARESx. In this series of <code class="language-plaintext highlighter-rouge">pwn-training</code> we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.</p>
 
@@ -13,13 +13,13 @@
 
 <h4 id="mitigations">Mitigations:</h4>
 
-<p>Before goinging into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. for example.</p>
+<p>Before goinging into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.</p>
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>checksec <span class="nt">--file</span> ./ret2shellcode
 </code></pre></div></div>
 
 <p><img src="/assets/images/pwntraining1/pwntrain1.png" alt="" /></p>
 
-<p>if you don’t have checksec installed then</p>
+<p>If you don’t have checksec installed then</p>
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>checksec
 </code></pre></div></div>
 
@@ -53,11 +53,11 @@
 
 <h4 id="code-walkthrough">Code walkthrough:</h4>
 
-<p>IF you are a curious assembly code lover make sure to head over to the gdb and dig deep. Here ill go through the c code since its a basic writeup.</p>
+<p>IF you are a curious assembly code lover make sure to head over to the gdb and dig deep. Here I’ll go through the c code since its a basic writeup.</p>
 
 <p><img src="/assets/images/pwntraining1/pwntrain2.png" alt="" /></p>
 
-<p>Just ignore the ignore_me() function its for standard buffering and stuff. There are 2 functions called win and main. looking at main we see there is a buf variable with size 0x60 and a puts call. there is also a printf that will leak the address of the buf variable [intresting].</p>
+<p>Just ignore the ignore_me() function its for standard buffering and stuff. There are 2 functions called win and main. looking at main we see there is a buf variable with size 0x60 and a puts call. There is also a printf that will leak the address of the buf variable [intresting].</p>
 
 <p>There is another function called gets(). we all at this point know its a dangerous function. lets see why.</p>
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>man gets
@@ -72,13 +72,16 @@
 </code></pre>
 <p><img src="/assets/images/pwntraining1/pwntrain4.png" alt="" /></p>
 
-<p>i know a lot of shit is happening but dont worry we only want to set a break point in the return at the end. These breakpoints are stops that’ll happen at specific address that you define when you run the binary in gdb.</p>
+<p>I know a lot of shit is happening but dont worry we only want to set a break point in the return at the end. These breakpoints are stops that’ll happen at specific address that you define when you run the binary in gdb.</p>
 
 <pre><code class="language-gdb">b* 0x0000000000401238
 </code></pre>
 <p>b for break and give the address of ret at the end of main. Now run the binary and see if you can crash it in someway. Go ahead and see if oyu can get some crash in the binary.</p>
 
-<p>Great if you got a <code class="language-plaintext highlighter-rouge">segfault</code> else no worries. well do it together. run the binary in gdb with <code class="language-plaintext highlighter-rouge">r</code> and then give 0x60 “a”s . this will fill up the buf variable. after those random “a”s maybe create a offset pattern like <code class="language-plaintext highlighter-rouge">111111112222222233333333</code></p>
+<p>Great if you got a <code class="language-plaintext highlighter-rouge">segfault</code> else no worries. well do it together. run the binary in gdb with <code class="language-plaintext highlighter-rouge">r</code> and then give 0x60 “a”s . this will fill up the buf variable. after those random “a”s maybe create a offset pattern like <code class="language-plaintext highlighter-rouge">111111112222222233333333</code>.</p>
+<ul>
+  <li>Segfault - its caused because our program is trying to read a part of memory thats invalid in this case it tried to jump to the address <code class="language-plaintext highlighter-rouge">22222222</code></li>
+</ul>
 
 <p><img src="/assets/images/pwntraining1/pwntrain5.jpg" alt="" /></p>
 
@@ -90,7 +93,7 @@
 
 <h4 id="return-to-win">Return to win:</h4>
 
-<p>now since we control the return address of main why not lets change the return address to win function ?</p>
+<p>now since we control the return address of main why not lets change the return address to win function?</p>
 <ul>
   <li>Win function does execve(“/bin/sh”) -&gt; which means that it’ll call a system function called <code class="language-plaintext highlighter-rouge">execve</code> and excecute the command <code class="language-plaintext highlighter-rouge">/bin/sh</code> which is a shell.</li>
 </ul>
@@ -121,7 +124,7 @@
 <p>This is a type of attack where we use static code or code thats been used to make this binary. we will combine one or many such code snippets to form a chain that’ll do something valuable to us.</p>
 
 <ul>
-  <li>Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and especially by RDI, RSI, RDX</li>
+  <li>Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and specifically by RDI, RSI, RDX for the first, second, and third arguments respectively.</li>
   <li>so we can set RDI = 0xdeadbeef and RSI = 0xcafebabe. then call win function.</li>
 </ul>
 
@@ -194,4 +197,6 @@
 <span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span> <span class="c1"># doesnt close the shell and keeps it open for us.
 </span><span class="n">p</span><span class="p">.</span><span class="n">close</span><span class="p">()</span>
 </code></pre></div></div>
+
+<p>Hope you liked the pwn training 1. More training writeups coming soon ! :D</p>
 :ET
