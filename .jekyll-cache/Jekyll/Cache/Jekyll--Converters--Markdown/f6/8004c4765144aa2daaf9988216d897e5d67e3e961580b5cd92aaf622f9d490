@@ -1,5 +1,6 @@
-I"
-b<h3 id="introduction">Introduction:</h3>
+I"Tb<p><img src="/assets/images/pwntraining2/pwntrain12.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
 
 <p>This is the 2nd challenge in the in the <a href="https://tourpran.me/categories.html#h-pwn-training">pwn training</a>. In this training we will go through the format string exploitation technique. We are provided 2 challenges of the same vulnerability. Lets go through them one by one.</p>
 
@@ -135,7 +136,7 @@ continue
 
 <p>Now if you came this far you might have come across the format specifier %s -&gt; this will get the contents stored in an address. So what if instead of printing the address, lets print the string pointed by the address. (So should we change all the p to s ?). hmm You do it only if all the values on the stack are valid address that points to some string. In this case its better to just count which offset our string is and then print it.</p>
 
-<p>Counting the offset we see that our string is in 12th position. So we can just print that position with a trick. <code class="language-plaintext highlighter-rouge">%number$p</code> will print the the value in stack at that offset. So lets try it.</p>
+<p>Counting the offset we see that our string is in 12th position. So we can just print that position with a trick. <code class="language-plaintext highlighter-rouge">%{offset}$p</code> will print the the value in stack at that offset. So lets try it.</p>
 
 <p><img src="/assets/images/pwntraining2/pwntrain7.png" alt="" /></p>
 
@@ -180,7 +181,7 @@ Go ahead and give this a try.</p>
 
 <p><img src="/assets/images/pwntraining2/pwntrain12.png" alt="" /></p>
 
-<p>A win function: this will call execve(“/bin/sh”), its a ROP challenge and I am pretty sure you know how to do it. There is a small catch here. We have to calculate the relative offset of the addresses since pie is enabled, so manually calculate the distance of the gadgets and the win function.</p>
+<p>A win function: this will call execve(“/bin/sh”), its a ROP challenge and I am pretty sure you know how to do it. There is a small catch here. We have to calculate the relative offset of the addresses since PIE is enabled, so manually calculate the distance of the gadgets and the win function.</p>
 
 <div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
 

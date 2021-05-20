@@ -1,4 +1,6 @@
-I"b<h3 id="introduction">Introduction:</h3>
+I"Tb<p><img src="/assets/images/pwntraining2/pwntrain13.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
 
 <p>This is the 2nd challenge in the in the <a href="https://tourpran.me/categories.html#h-pwn-training">pwn training</a>. In this training we will go through the format string exploitation technique. We are provided 2 challenges of the same vulnerability. Lets go through them one by one.</p>
 
@@ -179,7 +181,7 @@ Go ahead and give this a try.</p>
 
 <p><img src="/assets/images/pwntraining2/pwntrain12.png" alt="" /></p>
 
-<p>A win function: this will call execve(“/bin/sh”), its a ROP challenge and I am pretty sure you know how to do it. There is a small catch here. We have to calculate the relative offset of the addresses since pie is enabled, so manually calculate the distance of the gadgets and the win function.</p>
+<p>A win function: this will call execve(“/bin/sh”), its a ROP challenge and I am pretty sure you know how to do it. There is a small catch here. We have to calculate the relative offset of the addresses since PIE is enabled, so manually calculate the distance of the gadgets and the win function.</p>
 
 <div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
 
