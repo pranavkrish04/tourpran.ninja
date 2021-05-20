@@ -1,0 +1,12 @@
+I"D<h3 id="introduction">Introduction:</h3>
+
+<p>This is the 2nd challenge in the in the <a href="https://tourpran.me/categories.html#h-pwn-training">pwn training</a>. In this training we will go through the format string exploitation technique. We are provided 2 challenges of the same vulnerability. Lets go through them one by one.</p>
+
+<h3 id="challenge-1">Challenge 1:</h3>
+
+<p>You can download the binary and the source down below.</p>
+
+<p><a href="/assets/images/pwntraining2/flagleak">vuln binary</a> and 
+<a href="/assets/images/pwntraining2/flagleak.c">vuln c code</a></p>
+
+:ET

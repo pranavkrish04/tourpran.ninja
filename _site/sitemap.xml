@@ -57,6 +57,10 @@
 <lastmod>2021-05-09T00:00:00+05:30</lastmod>
 </url>
 <url>
+<loc>http://localhost:4000/pwn-training/2021/05/20/format-string-exploitation-training2.html</loc>
+<lastmod>2021-05-20T00:00:00+05:30</lastmod>
+</url>
+<url>
 <loc>http://localhost:4000/about.html</loc>
 </url>
 <url>
@@ -76,6 +80,6 @@
 </url>
 <url>
 <loc>http://localhost:4000/robots.html</loc>
-<lastmod>2021-05-09T21:59:40+05:30</lastmod>
+<lastmod>2021-05-19T08:24:31+05:30</lastmod>
 </url>
 </urlset>
