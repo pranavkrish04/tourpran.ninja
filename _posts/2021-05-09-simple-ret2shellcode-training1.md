@@ -6,6 +6,8 @@ categories: pwn-training
 tags: ["ret2shellcode", "ret2win"]
 ---
 
+![](/assets/images/pwntraining1/pwntrain20.png)
+
 ### Introduction:
 
 This is an initiative taken by team members of ARESx. In this series of `pwn-training` we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary's code will also be provided.

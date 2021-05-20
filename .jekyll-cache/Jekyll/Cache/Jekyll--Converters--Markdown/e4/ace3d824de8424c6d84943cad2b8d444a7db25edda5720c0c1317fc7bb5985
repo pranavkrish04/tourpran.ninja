@@ -1,4 +1,6 @@
-I"£B<h3 id="introduction">Introduction:</h3>
+I"ëB<p><img src="/assets/images/pwntraining1/pwntrain20.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
 
 <p>This is an initiative taken by team members of ARESx. In this series of <code class="language-plaintext highlighter-rouge">pwn-training</code> we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binaryâ€™s code will also be provided.</p>
 
