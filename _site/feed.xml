@@ -1,4 +1,61 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-05-21T10:54:02+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Format String Exploitation</title><link href="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html" rel="alternate" type="text/html" title="Format String Exploitation" /><published>2021-05-20T00:00:00+05:30</published><updated>2021-05-20T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining2/pwntrain13.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-05-25T13:40:21+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to libc</title><link href="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html" rel="alternate" type="text/html" title="Return to libc" /><published>2021-05-24T00:00:00+05:30</published><updated>2021-05-24T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
+
+&lt;p&gt;In this blog we will be trying to leak a libc address and try to get a shell by calling system. Here we will look into 2 challenges with similar attacks but slight variations.&lt;/p&gt;
+
+&lt;h3 id=&quot;challenge&quot;&gt;Challenge:&lt;/h3&gt;
+
+&lt;p&gt;Here we are given a binary and the source for the binary.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/assets/images/pwntraining3/ret2libc&quot;&gt;vuln binary&lt;/a&gt; and 
+&lt;a href=&quot;/assets/images/pwntraining3/ret2libc.c&quot;&gt;vuln c code&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;solution&quot;&gt;Solution:&lt;/h3&gt;
+
+&lt;h4 id=&quot;mitigations&quot;&gt;Mitigations:&lt;/h4&gt;
+
+&lt;p&gt;Before going into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;checksec &lt;span class=&quot;nt&quot;&gt;--file&lt;/span&gt; ./ret2shellcode
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;If you don’t have checksec installed then&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;apt &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;checksec
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;RELRO:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Partial RELRO - the got is writeable, nothing much to bother here.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;CANARY:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;No canary, we can do a overflow peacefully :)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;No eXecute:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;NX Enabled - this makes sure that the code on the stack is not excecuted.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;PIE:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;PIE Disabled, we know the address of all the code in the binary.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;code-walkthrough&quot;&gt;Code walkthrough:&lt;/h4&gt;
+
+&lt;p&gt;main function:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Its simple and easy, just overflow the buffer with garbage value and fill the return with… with… wait… with what ? Since there is no win function as such what exactly will we do ? Can we somehow get a shell by leaking something ? Lets look at the idea behind this challenge.&lt;/p&gt;
+
+&lt;h4 id=&quot;global-offset-table&quot;&gt;Global Offset Table:&lt;/h4&gt;
+
+&lt;p&gt;This challenge requires you to know the basics of GOT and PLT. In short GOT is a set of address that points to the function in the glibc (shared library). To know more about &lt;a href=&quot;https://tourpran.me/blogs/2020/09/13/got-plt.html&quot;&gt;Global offset table go ahead to my old blog&lt;/a&gt;.&lt;/p&gt;</content><author><name>tourpran</name></author><category term="pwn-training" /><category term="libc leak" /><category term="ret2libc" /><summary type="html"></summary></entry><entry><title type="html">Format String Exploitation</title><link href="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html" rel="alternate" type="text/html" title="Format String Exploitation" /><published>2021-05-20T00:00:00+05:30</published><updated>2021-05-20T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining2/pwntrain13.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 
@@ -1003,7 +1060,4 @@ so on…&lt;/li&gt;
 &lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/m4jSH7Xn9Vc&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: Challenge from PicoCTF 2019. Here I bruteforce the canary to make a ret2win attack.</summary></entry><entry><title type="html">Our First Exploit - 02</title><link href="http://tourpran.me/youtube/2020/08/18/video3.html" rel="alternate" type="text/html" title="Our First Exploit - 02" /><published>2020-08-18T00:00:00+05:30</published><updated>2020-08-18T00:00:00+05:30</updated><id>http://tourpran.me/youtube/2020/08/18/video3</id><content type="html" xml:base="http://tourpran.me/youtube/2020/08/18/video3.html">&lt;h2 id=&quot;description&quot;&gt;Description:&lt;/h2&gt;
 &lt;p&gt;Here I have used Pwntools with python and have used a popular attack called ret2win. This method is where we redirect the code excecution and make the program do what we want.&lt;/p&gt;
 
-&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/21GW7xQqMqg&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: Here I have used Pwntools with python and have used a popular attack called ret2win. This method is where we redirect the code excecution and make the program do what we want.</summary></entry><entry><title type="html">Reverse engineering Binaries - 01</title><link href="http://tourpran.me/youtube/2020/08/01/video2.html" rel="alternate" type="text/html" title="Reverse engineering Binaries - 01" /><published>2020-08-01T00:00:00+05:30</published><updated>2020-08-01T00:00:00+05:30</updated><id>http://tourpran.me/youtube/2020/08/01/video2</id><content type="html" xml:base="http://tourpran.me/youtube/2020/08/01/video2.html">&lt;h2 id=&quot;description&quot;&gt;Description:&lt;/h2&gt;
-&lt;p&gt;This video I have explained the process of Reversing the binaries and to analyse the assembly which makes up the binary.&lt;/p&gt;
-
-&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/BrfAbLYc1PA&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: This video I have explained the process of Reversing the binaries and to analyse the assembly which makes up the binary.</summary></entry></feed>
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/21GW7xQqMqg&quot; frameborder=&quot;0&quot; allow=&quot;accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;</content><author><name>tourpran</name></author><category term="YouTube" /><category term="YouTube" /><summary type="html">Description: Here I have used Pwntools with python and have used a popular attack called ret2win. This method is where we redirect the code excecution and make the program do what we want.</summary></entry></feed>
