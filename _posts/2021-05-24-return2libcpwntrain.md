@@ -176,7 +176,7 @@ We can see that, here we are getting an input and printing it in an unsafe way. 
 #### Canary:
 Set of characters that is placed in between the return address and the buffer. When a buffer overflow occurs the canary checks itself with a memory copy. If the values has been modified then we know a overflow happened and the program will abort. 
 
-<img src="/assets/images/pwntraining3/pwntrain7.jpg" alt="drawing" width="500"/>
+![](/assets/images/pwntraining3/pwntrain7.jpg)
 
 > Bypass: Basically we can leak the canary from format strings and place the canary in the correct spot in the payload. Since we over write the canary with the real canary, it seems there was no overflow.
 
