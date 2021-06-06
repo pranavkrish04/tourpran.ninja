@@ -1,4 +1,4 @@
-I"Ni<p><img src="/assets/images/pwntraining3/pwntrain1.png" alt="" /></p>
+I";i<p><img src="/assets/images/pwntraining3/pwntrain1.png" alt="" /></p>
 
 <h3 id="introduction">Introduction:</h3>
 
@@ -181,7 +181,7 @@ b* 0x00000000004011c7
 <h4 id="canary">Canary:</h4>
 <p>Set of characters that is placed in between the return address and the buffer. When a buffer overflow occurs the canary checks itself with a memory copy. If the values has been modified then we know a overflow happened and the program will abort.</p>
 
-<p><img src="/assets/images/pwntraining3/pwntrain7.jpg" alt="drawing" width="500" /></p>
+<p><img src="/assets/images/pwntraining3/pwntrain7.jpg" alt="" /></p>
 
 <blockquote>
   <p>Bypass: Basically we can leak the canary from format strings and place the canary in the correct spot in the payload. Since we over write the canary with the real canary, it seems there was no overflow.</p>

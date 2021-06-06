@@ -67,11 +67,11 @@ google_analytics: UA-175172601-1
 
 # You can choose a theme color
 # Default theme colors as below:
-# coolblack: #090a0b
+coolblack: #090a0b
 # spacegrey: #353535
 # snowwhite: #ffffff
 #
-# theme_color: snowwhite
+theme_color: coolblack
 #
 # Custom color as below:
 # theme_color: "#882250"
