@@ -1,85 +1,114 @@
-I"DP<p><img src="/assets/images/pwntraining1/pwntrain20.png" alt="" /></p>
+I"aX<p><img src="/assets/images/pwntraining1/pwntrain20.png" alt="" /></p>
 
 <h3 id="introduction">Introduction:</h3>
 
-<p>This is an initiative taken by team members of <a href="https://ctftime.org/team/128734">ARESx</a>. In this series of <code class="language-plaintext highlighter-rouge">pwn-training</code> we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will start of slow with a simple return to shellcode challenge. Most of the challenge binary’s code will also be provided.</p>
+<p>This is an initiative taken by team members of <a href="https://ctftime.org/team/128734">ARESx</a>. In this series of <strong>pwn-training</strong> we will be looking into various types of attacks performed on binaries. This in the first part of the series. We will go in a slow paced fashion covering most of the small details, so anyone can follow along this wonderful course.</p>
+
+<h3 id="binary-exploitation">Binary Exploitation:</h3>
+<p>Any file that does some function/ work is called a binary. Breaking down the word, binary exploitation itself, gives the meaning. We try different ways to break/exploit a program(Binary). This has become a common category in games called CTFs.</p>
 
 <h3 id="challenge">Challenge:</h3>
 
-<p>Here we are given a binary and the source for the binary.</p>
+<p>Here we are given a binary and the source code as part of the challenge. Usually the programmer writes in high level languages (human understandable language). Then that is compiled into a machine understandable form - binary. Our job as a exploit dev, need to figure out what this binary does and find the bug to exploit this program.</p>
 
 <p><a href="/assets/images/pwntraining1/ret2shellcode">vuln binary</a> and 
 <a href="/assets/images/pwntraining1/ret2shellcode.c">vuln c code</a></p>
 
+<p>Play around with both the files a bit and continue reading this blog.</p>
+
+<h3 id="prerequisites">Prerequisites:</h3>
+<ul>
+  <li>General understanding of linux.</li>
+  <li>Curiosity to learn more by googling. (This is a must)</li>
+</ul>
+
 <h3 id="solution">Solution:</h3>
+
+<h4 id="general-procedure">General Procedure:</h4>
+
+<p>Before stepping in further into the solution, a common set of procedure when followed will make your job easier. Usually when you get a binary,</p>
+<ul>
+  <li>Check the mitigations (check for all permissions, security restrictions) of the binary.</li>
+  <li>Run the binary and get a feel of what it is doing.</li>
+  <li>Try to debug the assembly code of main in a disassembler or debugger. (IDA/ GDB/ Hopper).</li>
+  <li>Note down observations and proceed to write the exploit script.</li>
+</ul>
+
+<h4 id="concept-of-buffer-overflow">Concept of buffer overflow:</h4>
+
+<p>When we can write more than what we are supposed to write into a memory we call it a buffer overflow. Buffer overflows are common bugs when getting started in pwn. <strong>Gets</strong> is a vulnerable function that has a buffer overflow bug in it. It reads in more data than what the original array/ variable can handle. Multiple attacks will be discussed further on.</p>
+
+<p><img src="/assets/images/pwntraining1/bufferoverflow.png" alt="" /></p>
+
+<h4 id="stack">Stack</h4>
+
+<p>A Stack is a memory segment, ment for storing data when a program is excecuted. This is a temporary storage unit. All the local variables created are stored here.</p>
+
+<h4 id="registers">Registers:</h4>
+
+<p>Registers are small data holding units. Think of it as variables used by the processor. Each register has its own unique job. 
+<img src="/assets/images/pwntraining1/registers.png" alt="" />
+<em>source:wikipedia</em></p>
 
 <h4 id="mitigations">Mitigations:</h4>
 
-<p>Before going into the exploitation its better to check what mitigations are enabled for a binary. Mitigations are protections that were included to avoid certain attacks. We use the command checksec to see the basic mitigations in a binary.</p>
+<p>Before going into the exploitation, its better to check what mitigations are enabled for a binary. Mitigations are protections that were included to avoid certain attacks. We use the command <em>checksec</em> to see the basic mitigations in a binary.</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>checksec <span class="nt">--file</span> ./ret2shellcode
 </code></pre></div></div>
 
 <p><img src="/assets/images/pwntraining1/pwntrain1.png" alt="" /></p>
 
-<p>If you don’t have checksec installed then,</p>
+<p>If you don’t have checksec installed then, open up a terminal and type the below command to install the checksec program.</p>
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nb">sudo </span>apt <span class="nb">install </span>checksec
 </code></pre></div></div>
 
-<p><strong>RELRO:</strong></p>
-<ul>
-  <li>Partial RELRO - In attackers point of view, does nothing but leaves the GOT (Global offset table) writeable.</li>
-  <li>Full RELRO    - makes the GOT read-only, therefore mitigating the “GOT-overwrite” attack. ( Discussed briefly later).</li>
-</ul>
-
 <p><strong>CANARY:</strong></p>
 <ul>
-  <li>Its a set of characters stored on the stack to make sure no buffer overflows takes place. It will do a check on the canary before returning. (we can bypass this later)</li>
+  <li>Its a set of characters stored on the stack to make sure no buffer overflows takes place.</li>
 </ul>
 
 <p><strong>No eXecute:</strong></p>
 <ul>
-  <li>NX Enabled - This makes sure that the code on the stack is not excecuted. (not that simple but lets go with this for now)</li>
+  <li>NX Enabled - This makes sure that the code on the stack is not excecuted.</li>
   <li>NX Disabled - Yea you guessed it, the code on the stack can be excecuted.</li>
 </ul>
 
 <p><strong>PIE:</strong></p>
 <ul>
-  <li>Position Independent Excecutable: will randomise the address of the code and PLT.</li>
-  <li>point to note : the libc address will always be different cause they are PIC (Position Independent Code). Even they dont know where they are laoded lmao.</li>
+  <li>Position Independent Excecutable: This mitigation will randomise the address of the code and PLT in the virtual memory each time the program gets excecuted.</li>
 </ul>
 
 <p><strong>RWX:</strong></p>
 <ul>
-  <li>Read, write and execute : It’ll tell us if the binary has segments that we can read, write and excecute.</li>
+  <li>Read, write and execute : It’ll tell us if the binary has segments(parts) that we can read, write and excecute.</li>
 </ul>
 
 <h4 id="code-walkthrough">Code walkthrough:</h4>
 
-<p>IF you are a curious assembly code lover, make sure to head over to the gdb and dig deep. Here I’ll go through the c code since its a basic writeup.</p>
+<p>If you are a curious assembly code lover, make sure to head over to the gdb (GNU debugger) and dig deep. Here I’ll go through the c code since its a basic writeup. In most scenarios you are not given the source code as it makes the task much easier. try to get comfy with assembly. <em>Or just use a disassembler lmao</em>.</p>
 
 <p><img src="/assets/images/pwntraining1/pwntrain2.png" alt="" /></p>
 
-<p>Just ignore the <code class="language-plaintext highlighter-rouge">ignore_me()</code> function its for standard buffering and stuff. There are 2 functions called <strong>win</strong> and <strong>main</strong>.</p>
-<ul>
-  <li>Looking at <strong>main</strong> function, we see there is a <code class="language-plaintext highlighter-rouge">buf</code> variable with size 0x60 and a <code class="language-plaintext highlighter-rouge">puts</code> call. There is also a <code class="language-plaintext highlighter-rouge">printf</code> that will leak the address of the buf variable [intresting].</li>
-</ul>
+<p>Just ignore the <em>ignore_me()</em> function its for standard buffering and stuff. There are 2 functions called <strong>win</strong> and <strong>main</strong>.</p>
+
+<h4 id="main">main:</h4>
+<p>Looking at <strong>main</strong> function, we see there is a <strong>buf</strong> variable with size 0x60 and a <strong>puts</strong> call. There is also a <strong>printf</strong> that will leak the address of the buf variable. %p is the address pointing to something, with little bit of searching you will know, its the address of buf variable.</p>
 
 <p>There is another function called gets(). We know its a dangerous function. lets see why.</p>
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>man gets
 </code></pre></div></div>
 <p><img src="/assets/images/pwntraining1/pwntrain3.png" alt="" /></p>
 
-<p>Seems like gets will take input <ins>as long as there is a newline</ins> character which means we can get past the buf variable and mess things in the <code class="language-plaintext highlighter-rouge">stack</code>. 
-<strong>Stack</strong> is just a memory region where all the static allocations happen. All the declaration of new variables, initialisation of different datatypes are stored here. All this allocation commands happens before excecuting the program. lets open this in gdb and see what is happening.</p>
+<p>Seems like gets will take input <ins>as long as there is a newline</ins> character which means we can get past the buf variable and mess things in the <strong>stack</strong>.</p>
 
-<p><strong>GDB</strong> is a debugger that will break down the program into its assembly code. It makes things easier for a reverse engineering to know what a program does in GDB. I have a different version / flavour of gdb called pwndbg. <a href="https://github.com/pwndbg/pwndbg">link to download</a></p>
+<p><strong>GDB</strong> is a debugger that will break down the program into its assembly code. It makes things easier for a reverse engineer to know what a program does. I have a different version/flavour of gdb called pwndbg. <a href="https://github.com/pwndbg/pwndbg">link to download</a></p>
 
 <pre><code class="language-gdb">disass main
 </code></pre>
 <p><img src="/assets/images/pwntraining1/pwntrain4.png" alt="" /></p>
 
-<p>Ok, This is the main function that we saw earlier. Here a stack frame is created with the command <code class="language-plaintext highlighter-rouge">push rbp; mov rbp,rsp</code> . For each function a new stack frame will be created to store variables required in a function.</p>
+<p>Ok, This is the main function that we saw earlier. Here a <strong>stack frame</strong> is created with the command <code class="language-plaintext highlighter-rouge">push rbp; mov rbp,rsp</code> . In a stack for every new function a new stack frame is created to store the local variables required in that particular function. So when a function exits the stack frame also gets deleted. <em>le memory efficiency</em>.</p>
 
 <p>Point to note, The arguments to the function are passed via registers. RDI, RSI, RDX registers are used to store the first, second, third argument to a function.</p>
 
@@ -90,22 +119,22 @@
   <li>Finally a gets is also called, which is exploited in our case.</li>
 </ul>
 
-<p>Now, we will set a break point in GDB to stop at a particular location that we specify during the runtime. By doing this at a specific instruction we can know what the registers are holding and what changes are made at that point of time in the excecution.</p>
+<p>Now, we will set a break point in GDB to stop at a particular location that we specify during the runtime. By doing this, at a specific instruction we can know what the registers are holding and what changes are made at that point of time in the excecution.</p>
 
-<p>To set a breakpoint ` b * address of the instruction`, in this case set a break point at ret instruction in main.</p>
+<p>To set a breakpoint <strong>b * address of the instruction</strong>, in this case set a break point at ret instruction in main.</p>
 
 <pre><code class="language-gdb">b* 0x0000000000401238
 </code></pre>
 
 <p>Take some time of your own, play around with the binary and see if you can crash the binary in some way.</p>
 
-<p>Great if you got a <code class="language-plaintext highlighter-rouge">segfault</code> else no worries. well do it together. Run the binary in gdb with <code class="language-plaintext highlighter-rouge">r</code> and then give 0x60 “a”s, this will fill up the buf variable with all that garbage. After those random “a”s maybe create an offset pattern like <code class="language-plaintext highlighter-rouge">111111112222222233333333</code>. This is just to see if something wrong happens. If there is a problem we can also see what the problem is, if we give an offset pattern.</p>
+<p>Great if you got a <strong>segfault</strong> else no worries. Well do it together. Run the binary in gdb with <code class="language-plaintext highlighter-rouge">r</code> and then give 0x60 “a”s, this will fill up the buf variable with all that garbage. After those random “a”s maybe create an offset pattern like <strong>111111112222222233333333</strong>. So incase the binary crashes we can see exactly where it crashed.</p>
 
-<ul>
-  <li>Segfault - It is caused because our program is trying to read a part of memory thats invalid</li>
-</ul>
+<blockquote>
+  <p>Segfault - It is caused because our program is trying to read a part of memory thats invalid</p>
+</blockquote>
 
-<p>In our case we overflowed the buf variable with “a”s and filling the RBP with <code class="language-plaintext highlighter-rouge">11111111</code> and finally making the return address point to <code class="language-plaintext highlighter-rouge">22222222</code>. Since there is no <code class="language-plaintext highlighter-rouge">22222222</code> address in memory, we will get a segfault.</p>
+<p>In our case we overflowed the buf variable with “a”s and filling the RBP with <strong>11111111</strong> and finally making the return address point to <strong>22222222</strong>, Since there is no <strong>22222222</strong> address in memory, we will get a segfault. Whenever a program tries to jump to an address that is not there you will recieve a segfault error.</p>
 
 <p><img src="/assets/images/pwntraining1/pwntrain5.jpg" alt="" /></p>
 
@@ -114,7 +143,7 @@ The RSP is the stack pointer or the register that holds infomartion about the ne
 
 <h4 id="aim">Aim:</h4>
 
-<p>As an attacker our aim is to make this binary give a <code class="language-plaintext highlighter-rouge">shell</code> for us in the server. A shell is a way of getting complete access on whatever target we are attacking. In future blogs, you might also see that you wont have the root (admin) access in a shell. You have to do several privilage escalations to make yourself root, though all of those fun stuff are for another time.</p>
+<p>As an attacker our aim is to make this binary give a <strong>shell</strong> for us in the server. A shell is a way of getting complete access on whatever target we are attacking. In future blogs, you might also see that you wont have the root (admin) access in a shell. You have to do several privilage escalations to make yourself root, though all of those fun stuff are for another time.</p>
 
 <p>So we looked at a win() function earlier, this will land us a nice neat shell!
 Though there wont be any win() function in real life applications, its your task to somehow find ways to get a shell in the server.</p>
@@ -123,22 +152,22 @@ Though there wont be any win() function in real life applications, its your task
 
 <p>Now since we control the return address of main function, why not lets change the return address to win function?</p>
 <ul>
-  <li>Win function does <code class="language-plaintext highlighter-rouge">execve("/bin/sh")</code> -&gt; which means that it’ll call a <code class="language-plaintext highlighter-rouge">system</code> function called <code class="language-plaintext highlighter-rouge">execve</code> and excecute the command <code class="language-plaintext highlighter-rouge">/bin/sh</code> which is a shell.</li>
+  <li>Win function does <strong>execve(“/bin/sh”)</strong> -&gt; which means that it’ll call a <strong>system</strong> function called <strong>execve</strong> and excecute the command <code class="language-plaintext highlighter-rouge">/bin/sh</code> which is a shell.</li>
 </ul>
 
 <p>ok lets start writing our script in python. First we will <code class="language-plaintext highlighter-rouge">import pwntools</code> library to make things easier. Next we will connect to our binary and send/recieve messages.</p>
 
-<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
-
-<span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s">"ret2shellcode"</span><span class="p">)</span>
-<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mh">0x60</span> <span class="o">+</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">8</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011a5</span><span class="p">))</span>
-<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
-</code></pre></div></div>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span> <span class="c1"># Importing the library called pwntools
+</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">process</span><span class="p">(</span><span class="s">"ret2shellcode"</span><span class="p">)</span> <span class="c1"># create a instance/process with the binary. helps to interact with the program. 
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mh">0x60</span> <span class="o">+</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">8</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011a5</span><span class="p">))</span> <span class="c1"># Send the payload(attack input) to the program.
+</span><span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span> <span class="c1">#If we get a shell make it interactive.
+</span></code></pre></div></div>
 
 <p>Here in the sendline command I am giving “a” * 0x60 to fill the buf variable and extra “a” * 8 to fill the rbp (base pointer) and then the address of win function. wait what is that p64() ?</p>
-<ul>
-  <li>p64() function will make your address into little endian format. To know more about <a href="https://www.geeksforgeeks.org/little-and-big-endian-mystery/">formats</a></li>
-</ul>
+<blockquote>
+  <p>p64() function will make your address into little endian format. To know more about <a href="https://www.geeksforgeeks.org/little-and-big-endian-mystery/">formats</a></p>
+</blockquote>
 
 <p>Run this script and lets see what we get. SHOOT you get something called EOF (End Of File) ?</p>
 
@@ -150,7 +179,7 @@ Though there wont be any win() function in real life applications, its your task
 
 <p>So we have to somehow make the <code class="language-plaintext highlighter-rouge">arg1 = 0xdeadbeef</code> and <code class="language-plaintext highlighter-rouge">arg2 = 0xcafebabe</code>. This is where return oriented programming comes into picture.</p>
 
-<h5 id="return-oriented-programming">Return Oriented Programming:</h5>
+<h4 id="return-oriented-programming">Return Oriented Programming:</h4>
 
 <p>This is a type of attack where we use static code or code thats been used to make this binary. we will combine one or many such code snippets to form a chain that’ll do something valuable to us.</p>
 
@@ -160,7 +189,7 @@ Though there wont be any win() function in real life applications, its your task
 
 <h4 id="exploit-ret2win">Exploit [ret2win]:</h4>
 
-<p>Firstly we can get all the gadgets in the binary with <a href="https://github.com/JonathanSalwan/ROPgadget">ROPgadget</a>. Then lets take out the ones that we want.</p>
+<p>Firstly we can get all the gadgets/code snippets in the binary with <a href="https://github.com/JonathanSalwan/ROPgadget">ROPgadget</a>. Then lets take out the ones that we want.</p>
 
 <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>python3 ROPgadget.py <span class="nt">--binary</span> ../Documents/pwn-train/pwn1/ret2shellcode
 </code></pre></div></div>
@@ -189,6 +218,9 @@ Though there wont be any win() function in real life applications, its your task
 <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mh">0x60</span> <span class="o">+</span> <span class="sa">b</span><span class="s">"a"</span><span class="o">*</span><span class="mi">8</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mh">0x00000000004011d1</span><span class="p">))</span> <span class="c1"># address to execve
 </span><span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
 </code></pre></div></div>
+<blockquote>
+  <p>Here we avoided the constraints and directly jumped to the execve funtion. Clever of you.</p>
+</blockquote>
 
 <h4 id="return-2-shellcode">return 2 shellcode:</h4>
 
@@ -196,10 +228,14 @@ Though there wont be any win() function in real life applications, its your task
 
 <p>Remember at the begining I said this binary is NX disabled. So we can basically store the commands that we want to excecute in buf variable and then jump back to the buf variable thereby excecuting whatever we want.</p>
 
+<blockquote>
+  <p>A shellcode is a set of instruction that will give you a shell or does some function that you want when excecuted.</p>
+</blockquote>
+
 <ul>
-  <li>First step is to store the leak in a variable. We will use recvline function here to recv the output given by the program.</li>
+  <li>First step is to store the leak in a variable. We will use <strong>recvline</strong> function here to recv the output given by the program.</li>
   <li>Write all the commands that you want to excecute to get a shell (pwntools has inbuilt functionalities :D ).</li>
-  <li>Fill the gap between the return and the shellcode with dummy instructions called nop (shellcode -&gt; all the commands to be excecuted )</li>
+  <li>Fill the gap between the return and the shellcode with dummy instructions called nop.</li>
   <li>Jump back to buf variable.</li>
 </ul>
 
