@@ -1,0 +1,7 @@
+I"Â<h3 id="intro">Intro:</h3>
+<p>Played InCTFj Quals this winter vacation. It was a fun filled ctf. Here we will discuss the pwn challenge called <code class="language-plaintext highlighter-rouge">leaky pipes</code>. Make sure to give the challenge a try before seeing this.</p>
+
+<h3 id="challenge-file">Challenge file:</h3>
+<p><a href="/assets/leakyinctfj/leaky_pipes">vuln binary</a> and 
+<a href="/assets/imleakyinctfages/leay.c">vuln c code</a></p>
+:ET
