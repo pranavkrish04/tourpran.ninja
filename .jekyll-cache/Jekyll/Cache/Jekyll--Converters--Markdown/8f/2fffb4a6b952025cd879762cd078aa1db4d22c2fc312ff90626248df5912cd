@@ -1,0 +1,40 @@
+I"�<p><img src="/images/checkpointaresx/ss1.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
+<p>Hey everyone, congrats on reaching this level&gt; This level acts as a checkpoint (name suggests). You will be combining the idea of format strings, buffer overflows, canaries from previous blogposts. Try this level on your own and check for hints when stuck.</p>
+
+<h3 id="challenge">Challenge:</h3>
+<p>Download below challenge file.</p>
+
+<p><a href="/images/checkpointaresx/checkpoint_1.zip">FILES</a></p>
+
+<h3 id="solution">Solution:</h3>
+
+<h4 id="mitigations">Mitigations:</h4>
+<p><img src="/images/checkpointaresx/ss2.png" alt="" />
+No need to explain mitigations right ?</p>
+
+<h4 id="code-walkthrough">Code Walkthrough:</h4>
+
+<p>We are given the c code. Here in the main program, there is a while loop to run the format string vulnerability and finally a compare statement leading to a fgets call.</p>
+
+<p><img src="/images/checkpointaresx/ss3.png" alt="" /></p>
+
+<h4 id="exploit-idea">Exploit idea:</h4>
+<p>Here the challenge is direct and was made to recap what we learnt in the previous blogs. The attack plan is</p>
+<ul>
+  <li>leaking a binary address, libc address, canary.</li>
+  <li>make the strength variable = “STRENGTH”</li>
+  <li>increase the size variable to a much larger value for a buffer overflow. (tricky part)</li>
+</ul>
+
+<h4 id="format-string-exploit">Format string exploit:</h4>
+
+<p>We already know what format strings are… now leak the stack little by little and see what useful values you get. I got the following values:</p>
+
+<pre><code class="language-leak">16: my input
+49: canary
+51: a libc address
+56: a binary address
+</code></pre>
+:ET

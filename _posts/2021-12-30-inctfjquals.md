@@ -208,3 +208,5 @@ log.info(f"flag: {final}")
 p.interactive()
 ```
 ![](/assets/leakyinctfj/ss6.png)
+
+Happy Hacking!

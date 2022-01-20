@@ -1,0 +1,50 @@
+I"R<p><img src="/images/checkpointaresx/ss1.png" alt="" /></p>
+
+<h3 id="introduction">Introduction:</h3>
+<p>Hey everyone, congrats on reaching this level&gt; This level acts as a checkpoint (name suggests). You will be combining the idea of format strings, buffer overflows, canaries from previous blogposts. Try this level on your own and check for hints when stuck.</p>
+
+<h3 id="challenge">Challenge:</h3>
+<p>Download below challenge file.</p>
+
+<p><a href="/images/checkpointaresx/checkpoint_1.zip">FILES</a></p>
+
+<h3 id="solution">Solution:</h3>
+
+<h4 id="mitigations">Mitigations:</h4>
+<p><img src="/images/checkpointaresx/ss2.png" alt="" />
+No need to explain mitigations right ?</p>
+
+<h4 id="code-walkthrough">Code Walkthrough:</h4>
+
+<p>We are given the c code. Here in the main program, there is a while loop to run the format string vulnerability and finally a compare statement leading to a fgets call.</p>
+
+<p><img src="/images/checkpointaresx/ss3.png" alt="" /></p>
+
+<h4 id="exploit-idea">Exploit idea:</h4>
+<p>Here the challenge is direct and was made to recap what we learnt in the previous blogs. The attack plan is</p>
+<ul>
+  <li>leaking a binary address, libc address, canary.</li>
+  <li>make the strength variable = “STRENGTH”</li>
+  <li>increase the size variable to a much larger value for a buffer overflow. (tricky part)</li>
+</ul>
+
+<h4 id="format-string-exploit">Format string exploit:</h4>
+
+<p>We already know what format strings are… now leak the stack little by little and see what useful values you get. I got the following values:</p>
+
+<pre><code class="language-leak">16: my input
+49: canary
+51: a libc address
+56: a binary address
+</code></pre>
+
+<p>Now you got the values so calculate the address relatively with the binary/libc or just use the pwntools module do the work :)</p>
+
+<div class="language-py highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">#Need to know the libc. (used by default libc for local purpose)
+</span><span class="n">elf</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">2</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">3</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="n">elf</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">__libc_csu_init</span>
+<span class="n">libc</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span> <span class="o">-</span> <span class="mi">159923</span>
+<span class="n">canary</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">leak</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">4</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">16</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>####</p>
+:ET
